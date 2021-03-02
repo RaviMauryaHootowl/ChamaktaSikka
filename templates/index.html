@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShruteBucks</title>
+</head>
+<body>
+    {% for block in chain %}
+    <p>{{ block }}</p>
+    {% endfor %}
+    <form method="POST" action="">
+        <input type="text" />
+    </form>
+    <button><a href="/mine_block">Mine Block</a></button>
+    <button><a href="/transaction">Add a transaction</a></button>
+</body>
+</html>
