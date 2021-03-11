@@ -11,18 +11,29 @@ class BlockChain:
         self.chain = []
         self.transactions = []
         self.nodes = set()
+        self.transaction_limit = 10
         self.create_block(proof = 1, previous_hash = "0")
-        
+
+    def update_mempool_afterBlock():
+        network = self.Nodes
+        for node in network:
+            res = requests.post(f"https://{node}/update_mempool_afterBlock",data = {"mempool":self.transactions})
+            if res.status_code == 201:
+                continue
+            else
+                print("Error updating mempool on node {0} : {1}".format(node,res.reason))
+
     def create_block(self, proof, previous_hash):
         block = {
             "index": len(self.chain) + 1,
             "timestamp": str(datetime.datetime.now()),
             "proof": proof,
-            "transactions": self.transactions,
-            "previous_hash": previous_hash 
+            "transactions": self.transactions[:self.transaction_limit],
+            "previous_hash": previous_hash
         }
-        self.transactions = []
+        self.transactions = [self.transaction_limit:]
         self.chain.append(block)
+        self.update_mempool_afterBlock()
         return block
 
     def get_previous_block(self):
@@ -51,7 +62,7 @@ class BlockChain:
             block = chain[block_index]
             if block["previous_hash"] != self.hash(previous_block):
                 return False
-            
+
             previous_proof = previous_block["proof"]
             proof = block["proof"]
             hash_operation = hashlib.sha256(str(proof**2 - previous_proof**2).encode()).hexdigest()
@@ -60,13 +71,32 @@ class BlockChain:
             previous_block = block
             block_index += 1
         return True
+
+    def broadcast_transaction(self, sender, receiver, amount):
+        network = self.Nodes
+        Tobj = {
+            "sender": sender,
+            "receiver": receiver,
+            "amount": amount
+        }
+        for node in network:
+            res = requests.post(f"https://{node}/update_mempool",data = Tobj)
+            if res.status_code == 201:
+                continue
+            else
+                print("Error updating mempool on node {0} : {1}".format(node,res.reason))
+
     def add_transaction(self, sender, receiver, amount):
         self.transactions.append({
             "sender": sender,
             "receiver": receiver,
             "amount": amount
         })
-        return self.get_previous_block()["index"] + 1
+        self.broadcast_transaction(sender, receiver, amount)
+
+
+        # return self.get_previous_block()["index"] + 1
+
 
     def add_node(self, address):
         parsed_address = urlparse(address)
@@ -107,6 +137,7 @@ blockchain = BlockChain()
 # @app.route("/transaction")
 # def transaction():
 #     return render_template("transaction.html")
+
 
 @app.route("/mine_block", methods = ["GET"])
 def mine_block():
@@ -151,12 +182,37 @@ def add_transaction():
     transaction_parameters = ["sender","receiver","amount"]
     if not all (key in data for key in transaction_parameters):
         return "You might have have missed some input fields."
-    index = blockchain.add_transaction(data["sender"], data["receiver"], data["amount"])
+    blockchain.add_transaction(data["sender"], data["receiver"], data["amount"])
+    # res = {
+    #     "message":f"The transaction will be added to the block no. {index}"
+    # }
     res = {
-        "message":f"The transaction will be added to the block no. {index}"
-    }
+        "message": "transaction added to our mempool"
+        }
     return jsonify(res), 201
     # return render_template("index.html", chain = blockchain.chain)
+
+@app.route("update_mempool", methods = ["POST"])
+def update_mempool():
+    data = request.get_data()
+    self.transactions.append({
+        "sender": data["sender"],
+        "receiver": data["receiver"],
+        "amount": data["amount"]
+    })
+    res = {
+        "message": "transaction added to mempool"
+        }
+    return jsonify(res), 201
+
+@app.route("update_mempool_afterBlock", methods = ["POST"])
+def update_mempool():
+    data = request.get_data()
+    self.transactions = data["mempool"]
+    res = {
+        "message": "mempool updated"
+        }
+    return jsonify(res), 201
 
 @app.route("/connect_node", methods = ["POST"])
 def connect_node():
