@@ -206,7 +206,7 @@ def update_mempool():
     return jsonify(res), 201
 
 @app.route("update_mempool_afterBlock", methods = ["POST"])
-def update_mempool():
+def update_mempool_afterBlock():
     data = request.get_data()
     self.transactions = data["mempool"]
     res = {
