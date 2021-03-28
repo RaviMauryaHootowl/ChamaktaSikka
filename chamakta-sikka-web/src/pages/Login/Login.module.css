@@ -1,0 +1,84 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.loginPage{
+  /* background-color: aqua; */
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Poppins', sans-serif;
+}
+
+.loginNavContainer{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.header{
+  font-size: 2rem;
+  font-weight: bold;
+  color: #3097F6;
+}
+
+.subHeader{
+  letter-spacing: 1px;
+  color: #898989;
+}
+
+.loginContainer{
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginForm{
+  width: 430px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 12px;
+  padding: 12px;
+  background-color: #F1F1F1;
+  border-radius: 8px;
+  box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
+}
+
+.inputLabel{
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #515151;
+}
+
+.nameInput, .initMoney{
+  padding: 12px 12px;
+  outline: none;
+  border: none;
+  background-color: white;
+  font-size: 18px;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.enterBtn{
+  padding: 12px 12px;
+  outline: none;
+  border: none;
+  background-color: #3097F6;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 8px;
+  grid-column: 1 / span 2;
+  font-family: 'Poppins', sans-serif;
+}
