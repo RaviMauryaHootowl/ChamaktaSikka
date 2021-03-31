@@ -12,14 +12,15 @@ const Home = () => {
 
   const [payToId, setPayToId] = useState("");
   const [payAmount, setPayAmount] = useState(0);
+  const [payIncentive, setPayIncentive] = useState(0);
+  const [isInfoCardVisible, setIsInfoCardVisible] = useState(false);
+  const [userToDisplayInfoCard, setUserToDisplayInfoCard] = useState(null);
 
-  const userColorArray = [
-    {start: '#F33030', end: '#F47272'},
-    {start: '#30F27E', end: '#70F37D'},
-    {start: '#3097F6', end: '#69ACEA'},
-    {start: '#BB29FF', end: '#D67EF4'},
-    {start: '#FFB629', end: '#FFB629'}
-  ]
+  const [memPool, setMemPool] = useState(["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+
+  const toggleInfoCardVisibility = () => {
+    setIsInfoCardVisible(!isInfoCardVisible);
+  }
 
   useEffect(() => {
     const userToCreate = location.state;
@@ -48,6 +49,7 @@ const Home = () => {
 
   return (
     <div className={styles.homePage}>
+      <UserInfoCard userToDisplayInfoCard={userToDisplayInfoCard} isInfoCardVisible={isInfoCardVisible} setIsInfoCardVisible={setIsInfoCardVisible} />
       <div className={styles.homeNavContainer}>
         <span className={styles.header}>Chamakta Sikka</span>
         <span className={styles.subHeader}>Our Own Cryptocurrency</span>
@@ -58,11 +60,7 @@ const Home = () => {
           <div className={styles.usersOnlineListContainer}>
             {
               allUsers.map((thisUser, index) => {
-                return (
-                  <div className={styles.userAvatar} style={{backgroundImage : `linear-gradient(145deg, ${userColorArray[index % userColorArray.length].start}, ${userColorArray[index % userColorArray.length].end})`}}>
-                    {thisUser.username}
-                  </div>
-                );
+                return <UserAvatar user={thisUser} index={index} setUserToDisplayInfoCard={setUserToDisplayInfoCard} toggleInfoCardVisibility={toggleInfoCardVisibility} />
               })
             }
           </div>
@@ -77,6 +75,8 @@ const Home = () => {
                 <input className={styles.payToInput} value={payToId} onChange={(e) => {setPayToId(e.target.value)}} type="text"/>
                 <span className={styles.inputLabel}>Amount</span>
                 <input className={styles.payAmountInput} value={payAmount} onChange={(e) => {setPayAmount(e.target.value)}} type="number"/>
+                <span className={styles.inputLabel}>Incentive</span>
+                <input className={styles.payAmountInput} value={payIncentive} onChange={(e) => {setPayIncentive(e.target.value)}} type="number"/>
                 <button className={styles.payBtn}>PAY</button>
               </div>
             </div>
@@ -99,6 +99,80 @@ const Home = () => {
             </div>
           </div>
         </div>
+        <div className={styles.mempoolBoxContainer}>
+          <div className={styles.mempoolOuterContainer}>
+            <div className={styles.mempoolHeaderContainer}>
+              <span className={styles.mempoolHeader}>Mempool</span>
+              <button className={styles.mineBtn}>MINE</button>
+            </div>
+            
+            <div className={styles.mempoolInnerContainer}>
+              {
+                memPool.map((transaction) => {
+                  return <MempoolTransactionCard />
+                })
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const UserAvatar = ({user, index, toggleInfoCardVisibility, setUserToDisplayInfoCard}) => {
+  
+  const userColorArray = [
+    {start: '#F33030', end: '#F47272'},
+    {start: '#30F27E', end: '#70F37D'},
+    {start: '#3097F6', end: '#69ACEA'},
+    {start: '#BB29FF', end: '#D67EF4'},
+    {start: '#FFB629', end: '#FFB629'}
+  ]
+
+  const onUserAvatarClick = () => {
+    setUserToDisplayInfoCard(user);
+    toggleInfoCardVisibility();
+  }
+
+
+  return (
+    <div onClick={onUserAvatarClick} className={styles.userAvatar} style={{backgroundImage : `linear-gradient(145deg, ${userColorArray[index % userColorArray.length].start}, ${userColorArray[index % userColorArray.length].end})`}}>
+      
+    </div>
+  );
+}
+
+const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVisible}) => {
+
+
+  return (
+    <>{(isInfoCardVisible) && 
+      <div className={styles.userInfoCardBackground}>
+        <div className={styles.userInfoContainer}>
+          <div className={styles.infoTitle}>Account No: </div>
+          <span className={styles.infoValue}>{userToDisplayInfoCard.uuid}</span>
+          <span className={styles.infoTitle}>Name: </span>
+          <span className={styles.infoValue}>{userToDisplayInfoCard.username}</span>
+          <button onClick={() => {setIsInfoCardVisible(false)}}>close</button>
+        </div>
+      </div>
+    }</>
+  );
+}
+
+const MempoolTransactionCard = () => {
+  return (
+    <div className={styles.mempoolTransactionCardContainer}>
+      <div className={styles.transactionCard}>
+        <span className={styles.transactionCardHeader}>Transaction Hash</span>
+        <span className={styles.transactionCardValue}>a35wva1we35va3f15weaf4we33</span>
+        <span className={styles.transactionCardHeader}>Sender</span>
+        <span className={styles.transactionCardValue}>a4v6e8w4va664ag3awf5we1f3wa</span>
+        <span className={styles.transactionCardHeader}>Reciever</span>
+        <span className={styles.transactionCardValue}>ser4b364a6w4a6g4a6w8g4a6r8g</span>
+        <span className={styles.transactionCardHeader}>Timestamp</span>
+        <span className={styles.transactionCardValue}>8:03 PM, 31/03/2021</span>
       </div>
     </div>
   );
