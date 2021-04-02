@@ -14,13 +14,13 @@ class BlockChain:
         self.transaction_limit = 10
         self.create_block(proof = 1, previous_hash = "0")
 
-    def update_mempool_afterBlock():
-        network = self.Nodes
+    def update_mempool_afterBlock(self):
+        network = self.nodes
         for node in network:
             res = requests.post(f"https://{node}/update_mempool_afterBlock",data = {"mempool":self.transactions})
             if res.status_code == 201:
                 continue
-            else
+            else :
                 print("Error updating mempool on node {0} : {1}".format(node,res.reason))
 
     def create_block(self, proof, previous_hash):
@@ -31,7 +31,7 @@ class BlockChain:
             "transactions": self.transactions[:self.transaction_limit],
             "previous_hash": previous_hash
         }
-        self.transactions = [self.transaction_limit:]
+        self.transactions = self.transactions[self.transaction_limit :]
         self.chain.append(block)
         self.update_mempool_afterBlock()
         return block
@@ -83,7 +83,7 @@ class BlockChain:
             res = requests.post(f"https://{node}/update_mempool",data = Tobj)
             if res.status_code == 201:
                 continue
-            else
+            else :
                 print("Error updating mempool on node {0} : {1}".format(node,res.reason))
 
     def add_transaction(self, sender, receiver, amount):
@@ -192,8 +192,8 @@ def add_transaction():
     return jsonify(res), 201
     # return render_template("index.html", chain = blockchain.chain)
 
-@app.route("update_mempool", methods = ["POST"])
-def update_mempool():
+@app.route("/update_mempool", methods = ["POST"])
+def update_mempool(self):
     data = request.get_data()
     self.transactions.append({
         "sender": data["sender"],
@@ -205,8 +205,8 @@ def update_mempool():
         }
     return jsonify(res), 201
 
-@app.route("update_mempool_afterBlock", methods = ["POST"])
-def update_mempool_afterBlock():
+@app.route("/update_mempool_afterBlock", methods = ["POST"])
+def update_mempool_afterBlock(self):
     data = request.get_data()
     self.transactions = data["mempool"]
     res = {
@@ -232,9 +232,7 @@ def connect_node():
 def replace_chain():
     is_chain_replaced = blockchain.replace_with_longestchain()
     if is_chain_replaced:
-        response : {"message": "The nodes had different chains so the chains were changed with the longest one.",
-        "new_chain": blockchain.chain
-        }
+        response : {"message": "The nodes had different chains so the chains were changed with the longest one.","new_chain": blockchain.chain}
     else:
         response = {
             "message": "No need to update the chain.",
