@@ -1,6 +1,7 @@
 import hashlib
 import json
 import datetime
+import functools
 from flask import Flask, jsonify, request,render_template
 import requests
 from uuid import uuid4
@@ -9,6 +10,19 @@ import Crypto
 from Crypto.PublicKey import RSA
 from Crypto import Random
 import base64
+
+# class User:
+#     def __init__(self, name):
+#         self.name = name
+#         self.details = self.rsakeys()
+#         self.wallet = 0
+    
+#     def rsakeys():
+#         length = 1024
+#         privatekey = RSA.generate(length, Random.new().read)
+#         publickey = privatekey.publickey()
+#         user = {'privateKey':privatekey,'publicKey':publickey}
+#         return user
 
 class BlockChain:
     def __init__(self):
@@ -90,14 +104,38 @@ class BlockChain:
             else :
                 print("Error updating mempool on node {0} : {1}".format(node,res.reason))
 
-    def add_transaction(self, sender, receiver, amount):
-        self.transactions.append({
-            "sender": sender,
-            "receiver": receiver,
-            "amount": amount
-        })
-        self.broadcast_transaction(sender, receiver, amount)
-
+    def check_balance(Self,sender_name):
+        def check(x):
+            if x.sender == sender_name:
+                return x.amount
+            else:
+                return 0
+        return reduce(lambda x,y: x + y, map(check,self.transactions))
+        
+    def add_transaction(self, sender, signature, publickey, receiver, amount):
+        # signature = sign(private_key,{
+        #     "sender": sender,
+        #     "receiver": receiver,
+        #     "amount": amount
+        # })
+        
+        if amount <= check_balance(sender): 
+            data= {"sender": sender,
+                "receiver": receiver,
+                "amount": amount}
+            valid = verify(publickey,data,signature)
+            if valid :
+                self.transactions.append({
+                    "sender": sender,
+                    "receiver": receiver,
+                    "amount": amount,
+                    'signature': signature 
+                })
+                self.broadcast_transaction(sender, receiver, amount)
+            else:
+                print("Verification failed!")
+        else:
+            print("Transaction invalid due to insufficient balance!")
 
         # return self.get_previous_block()["index"] + 1
 
@@ -125,12 +163,6 @@ class BlockChain:
 
         return False
     
-    def rsakeys():
-        length = 1024
-        privatekey = RSA.generate(length, Random.new().read)
-        publickey = privatekey.publickey()
-        return privatekey, publickey
-
     def sign(privatekey, data):
         return base64.b64encode(str((privatekey.sign(data, ''))[0]).encode())
 
