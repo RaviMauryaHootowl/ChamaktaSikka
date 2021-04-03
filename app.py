@@ -5,6 +5,10 @@ from flask import Flask, jsonify, request,render_template
 import requests
 from uuid import uuid4
 from urllib.parse import urlparse
+import Crypto
+from Crypto.PublicKey import RSA
+from Crypto import Random
+import base64
 
 class BlockChain:
     def __init__(self):
@@ -120,6 +124,18 @@ class BlockChain:
             return True
 
         return False
+    
+    def rsakeys():
+        length = 1024
+        privatekey = RSA.generate(length, Random.new().read)
+        publickey = privatekey.publickey()
+        return privatekey, publickey
+
+    def sign(privatekey, data):
+        return base64.b64encode(str((privatekey.sign(data, ''))[0]).encode())
+
+    def verify(publickey, data, sign):
+        return publickey.verify(data, (int(base64.b64decode(sign)),))
 
 
 app = Flask(__name__)
@@ -232,7 +248,7 @@ def connect_node():
 def replace_chain():
     is_chain_replaced = blockchain.replace_with_longestchain()
     if is_chain_replaced:
-        response : {"message": "The nodes had different chains so the chains were changed with the longest one.","new_chain": blockchain.chain}
+        response = {"message": "The nodes had different chains so the chains were changed with the longest one.","new_chain": blockchain.chain}
     else:
         response = {
             "message": "No need to update the chain.",
