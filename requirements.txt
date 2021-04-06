@@ -4,11 +4,16 @@ click==7.1.2
 DateTime==4.3
 Flask==1.1.2
 idna==2.10
+itsdangerous==1.1.0
 Jinja2==2.11.2
 MarkupSafe==1.1.1
+Naked==0.1.31
+pyasn1==0.4.8
 pytz==2020.5
+PyYAML==5.4.1
 requests==2.25.1
+rsa==4.7.2
+shellescape==3.8.1
 urllib3==1.26.2
 Werkzeug==1.0.1
 zope.interface==5.2.0
-crypto==1.4.1

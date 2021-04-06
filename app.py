@@ -1,14 +1,14 @@
 import hashlib
 import json
 import datetime
-import functools
+from functools import reduce
 from flask import Flask, jsonify, request,render_template
 import requests
 from uuid import uuid4
 from urllib.parse import urlparse
-import Crypto
-from Crypto.PublicKey import RSA
-from Crypto import Random
+import rsa
+# from Crypto.PublicKey import RSA
+# from Crypto import Random
 import base64
 
 # class User:
@@ -31,7 +31,7 @@ class BlockChain:
         self.nodes = set()
         self.transaction_limit = 10
         self.create_block(proof = 1, previous_hash = "0")
-
+        self.coin_base_transaction()
     def update_mempool_afterBlock(self):
         network = self.nodes
         for node in network:
@@ -104,26 +104,34 @@ class BlockChain:
             else :
                 print("Error updating mempool on node {0} : {1}".format(node,res.reason))
 
-    def check_balance(Self,sender_name):
+    def check_balance(self,sender_name):
         def check(x):
-            if x.sender == sender_name:
-                return x.amount
+            if x["receiver"] == sender_name:
+                return x["amount"]
             else:
                 return 0
         return reduce(lambda x,y: x + y, map(check,self.transactions))
-        
+
+    def coin_base_transaction(self):
+        self.transactions.append({
+                    "sender": "ChamaktaSikkha",
+                    "receiver": "Me",
+                    "amount": 10000,
+                    'signature': "l;asdjoklasf" 
+                })
+        #self.broadcast_transaction("ChamaktaSikkha", "Me", 10000)
     def add_transaction(self, sender, signature, publickey, receiver, amount):
-        # signature = sign(private_key,{
+        # signature = self.sign(private_key,{
         #     "sender": sender,
         #     "receiver": receiver,
         #     "amount": amount
         # })
         
-        if amount <= check_balance(sender): 
+        if amount <= self.check_balance(sender): 
             data= {"sender": sender,
                 "receiver": receiver,
                 "amount": amount}
-            valid = verify(publickey,data,signature)
+            valid = self.verify(publickey,data,signature)
             if valid :
                 self.transactions.append({
                     "sender": sender,
@@ -163,11 +171,12 @@ class BlockChain:
 
         return False
     
-    def sign(privatekey, data):
+    def sign(self,privatekey, data):
         return base64.b64encode(str((privatekey.sign(data, ''))[0]).encode())
 
-    def verify(publickey, data, sign):
-        return publickey.verify(data, (int(base64.b64decode(sign)),))
+    def verify(self,publickey, data, sign):
+        # return publickey.verify(data, (int(base64.b64decode(sign)),))
+        return rsa.verify(data, sign, publickey)
 
 
 app = Flask(__name__)
@@ -225,11 +234,12 @@ def is_valid():
 
 @app.route("/add_transaction", methods = ["POST"])
 def add_transaction():
-    data = request.get_data()
+    data = request.get_json()
     print(data)
     transaction_parameters = ["sender","receiver","amount"]
     if not all (key in data for key in transaction_parameters):
         return "You might have have missed some input fields."
+    #Generate the signature of the transaction and pass that as a param along with the public key of the sender in add_transaction
     blockchain.add_transaction(data["sender"], data["receiver"], data["amount"])
     # res = {
     #     "message":f"The transaction will be added to the block no. {index}"
