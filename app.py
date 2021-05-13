@@ -1,3 +1,4 @@
+import sys
 import hashlib
 import json
 import datetime
@@ -35,7 +36,7 @@ class BlockChain:
     def update_mempool_afterBlock(self):
         network = self.nodes
         for node in network:
-            res = requests.post(f"https://{node}/update_mempool_afterBlock",data = {"mempool":self.transactions})
+            res = requests.post(f"http://{node}/update_mempool_afterBlock",data = {"mempool":self.transactions})
             if res.status_code == 201:
                 continue
             else :
@@ -98,7 +99,7 @@ class BlockChain:
             "amount": amount
         }
         for node in network:
-            res = requests.post(f"https://{node}/update_mempool",data = Tobj)
+            res = requests.post(f"http://{node}/update_mempool",data = Tobj)
             if res.status_code == 201:
                 continue
             else :
@@ -126,7 +127,6 @@ class BlockChain:
         #     "receiver": receiver,
         #     "amount": amount
         # })
-        
         if amount <= self.check_balance(sender): 
             data= {"sender": sender,
                 "receiver": receiver,
@@ -157,7 +157,7 @@ class BlockChain:
         longest_chain = None
         max_length_of_chain = len(self.chain)
         for node in network:
-            res = requests.get(f"https://{node}/get_chain")
+            res = requests.get(f"http://{node}/get_chain")
             if res.status_code == 200:
                 length = res.json()["length"]
                 chain = res.json()["chain"]
@@ -178,6 +178,9 @@ class BlockChain:
         # return publickey.verify(data, (int(base64.b64decode(sign)),))
         return rsa.verify(data, sign, publickey)
 
+
+def sign(privatekey, data):
+    return base64.b64encode(str((privatekey.sign(data, ''))[0]).encode())
 
 app = Flask(__name__)
 
@@ -236,11 +239,18 @@ def is_valid():
 def add_transaction():
     data = request.get_json()
     print(data)
-    transaction_parameters = ["sender","receiver","amount"]
+    transaction_parameters = ["sender","receiver","amount", "private_key"]
     if not all (key in data for key in transaction_parameters):
         return "You might have have missed some input fields."
     #Generate the signature of the transaction and pass that as a param along with the public key of the sender in add_transaction
-    blockchain.add_transaction(data["sender"], data["receiver"], data["amount"])
+    sender_private_key = data["private_key"]
+    transaction_data = {"sender": data["sender"],
+                "receiver": data["receiver"],
+                "amount": data["amount"]}
+    
+    data_signature = sign(sender_private_key, transaction_data)
+
+    blockchain.add_transaction(data["sender"], data_signature,  data["receiver"], data["amount"])
     # res = {
     #     "message":f"The transaction will be added to the block no. {index}"
     # }
@@ -297,4 +307,5 @@ def replace_chain():
             "chain": blockchain.chain
             }
     return jsonify(response), 200
-app.run(host = '0.0.0.0', port = 5000)
+    
+app.run(host = '0.0.0.0', port = sys.argv[1])

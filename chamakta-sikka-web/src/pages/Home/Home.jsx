@@ -3,7 +3,10 @@ import styles from './Home.module.css';
 import axios from 'axios';
 import {useLocation} from 'react-router-dom';
 import io from 'socket.io-client';
-const socket = io.connect('/');
+console.log(window.location.href);
+const port = parseInt((window.location.href).split(':')[2].substr(0,4))
+console.log(port+2000)
+const socket = io.connect(`http://localhost:${port+2000}/`);
 const Home = () => {
   const location = useLocation();
   
