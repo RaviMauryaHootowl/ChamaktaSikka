@@ -94,13 +94,16 @@
 }
 
 .userInfoContainer{
+  width: 60%;
+  overflow: hidden;
   background-color: white;
   color: black;
   border-radius: 6px;
   box-shadow: rgba(0, 0, 0, 0.212) 1px 1px 10px;
-  padding: 8px;
+  padding: 16px;
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: auto auto auto;
+  row-gap: 8px;
 }
 
 .infoRow{
@@ -114,9 +117,28 @@
 }
 .infoValue{
   font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  /* background-color: red; */
 }
 
-.payAndAccountContainer, .mempoolBoxContainer{
+.infoKeyCopyBtn{
+  margin-left: 8px;
+  cursor: pointer;
+  color: #3097F6;
+  transition: transform 0.2s ease;
+}
+
+.infoKeyCopyBtn:hover{
+  transform: rotate(-8deg);
+}
+
+.infoKeyCopyBtn:active{
+  transform: translateY(-5px);
+}
+
+.payAndAccountContainer, .mempoolBoxContainer, .blockchainBoxContainer{
   width: 90%;
   padding: 16px 0;
   display: flex;
@@ -125,13 +147,15 @@
 }
 
 
-.payOuterContainer, .mempoolOuterContainer{
+.payOuterContainer, .mempoolOuterContainer, .blockchainOuterContainer{
   flex: 1;
-  display: flex;
+  flex-basis: 0;
+  flex-grow: 1;
   flex-direction: column;
   align-items: stretch;
   padding: 4px;
   margin-right: 12px;
+  align-self: stretch;
 }
 
 .mempoolOuterContainer{
@@ -139,16 +163,17 @@
 }
 
 .accountOuterContainer{
-  flex: 1;
+  min-width: 0;
+  flex-basis: 0;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   padding: 4px;
   align-self: stretch;
   margin-left: 12px;
 }
 
-.payHeader, .accountHeader, .mempoolHeader{
+.payHeader, .accountHeader, .mempoolHeader, .blockchainHeader{
   color: #898989;
   padding-bottom: 4px;
   font-weight: 600; 
@@ -193,9 +218,10 @@
 }
 
 .accountCardContainer{
+  flex: 1;
+  width: 100%;
   border-radius: 8px;
   background-image: linear-gradient(145deg, #328CF5, #49A4F9);
-  height: 100%;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -229,13 +255,36 @@
   font-size: 1.2rem;
 }
 
+.accountPublicKeyWithCopy{
+  display: flex;
+}
+
 .accountNumberValue{
+  flex: 1;
   font-weight: 700;
   color: white;
   font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-.mempoolInnerContainer{
+.myKeyCopyBtn{
+  margin-left: 8px;
+  cursor: pointer;
+  color: white;
+  transition: transform 0.2s ease;
+}
+
+.myKeyCopyBtn:hover{
+  transform: rotate(-8deg);
+}
+
+.myKeyCopyBtn:active{
+  transform: translateY(-5px);
+}
+
+.mempoolInnerContainer, .blockchainInnerContainer{
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -245,7 +294,7 @@
   overflow-x: scroll;
 }
 
-.mempoolHeaderContainer{
+.mempoolHeaderContainer, .blockchainHeaderContainer{
   width: 100%;
   display: flex;
   flex-direction: row;

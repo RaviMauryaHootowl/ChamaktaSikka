@@ -3,10 +3,12 @@ import styles from './Home.module.css';
 import axios from 'axios';
 import {useLocation} from 'react-router-dom';
 import io from 'socket.io-client';
+import dateformat from 'dateformat';
+import { FiCopy } from 'react-icons/fi'
 console.log(window.location.href);
 const port = parseInt((window.location.href).split(':')[2].substr(0,4))
-console.log(port+2000)
-const socket = io.connect(`http://localhost:${port+2000}/`);
+const baseAddress = `http://localhost:${port+2000}`
+const socket = io.connect(`${baseAddress}/`);
 const Home = () => {
   const location = useLocation();
   
@@ -19,36 +21,68 @@ const Home = () => {
   const [isInfoCardVisible, setIsInfoCardVisible] = useState(false);
   const [userToDisplayInfoCard, setUserToDisplayInfoCard] = useState(null);
 
-  const [memPool, setMemPool] = useState(["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+  const [memPool, setMemPool] = useState([]);
+  const [blockchain, setBlockchain] = useState([]);
 
   const toggleInfoCardVisibility = () => {
     setIsInfoCardVisible(!isInfoCardVisible);
   }
 
-  useEffect(() => {
-    const userToCreate = location.state;
-    socket.emit("addNewUser", userToCreate);
-  }, [location])
+  const copyMyPublicKey = () => {
+    navigator.clipboard.writeText(user.public_key);
+  }
 
   useEffect(() => {
+      socket.emit("refresh_connected_users");
+      socket.emit("refresh_transactions");
+      socket.emit("refresh_blockchain");
 
-      // Getting the user info for first time only
-      socket.on("userInfo", data => {
-        // console.log(data);
-        setUser(data);
-      });
-
-      // Getting list of all users when there is any update
-      socket.on("userRefresh", data => {
-        // console.log(data);
+      socket.on("connected_users", data => {
+        console.log(data);
         setAllUsers(data);
+        setUser((data.filter((item) => item.PORT === port+2000))[0]);
       });
 
-      // If user exits the website, to disconnect him/her
+      socket.on("transactions", data => {
+        setMemPool(data);
+      });
+
+      socket.on("blockchain", data => {
+        console.log(data);
+        setBlockchain(data);
+      })
+
       return () => {
         socket.close()
       }
-  }, [])
+  }, []);
+
+  useEffect(() => {
+    console.log(user);
+  }, [user]);
+
+
+  const payToSomeone = () => {
+    axios.post(`${baseAddress}/api/perform_transaction`, {
+      "receiver_public_key": payToId,
+      "amount": payAmount
+    }).then((res) => {
+      console.log(res.data);
+    })
+    .catch((e) => {
+      alert("Payment not done")
+    })
+  }
+
+  const mineBlock = () => {
+    axios.post(`${baseAddress}/api/mine_block`)
+    .then((res) => {
+      console.log(res.data);
+    })
+    .catch((e) => {
+      alert("Block not mined");
+    })
+  }
 
   return (
     <div className={styles.homePage}>
@@ -80,7 +114,7 @@ const Home = () => {
                 <input className={styles.payAmountInput} value={payAmount} onChange={(e) => {setPayAmount(e.target.value)}} type="number"/>
                 <span className={styles.inputLabel}>Incentive</span>
                 <input className={styles.payAmountInput} value={payIncentive} onChange={(e) => {setPayIncentive(e.target.value)}} type="number"/>
-                <button className={styles.payBtn}>PAY</button>
+                <button className={styles.payBtn} onClick={payToSomeone}>PAY</button>
               </div>
             </div>
           </div>
@@ -89,15 +123,18 @@ const Home = () => {
             <span className={styles.accountHeader}>Your Account</span>
             <div className={styles.accountCardContainer}>
               <div className={styles.walletContainer}>
-                <span className={styles.walletHeader}>{(user != null) ? user.username : ""}'s Wallet</span>
+                <span className={styles.walletHeader}>PORT {(user != null) ? user.PORT : ""}'s Wallet</span>
                 <div className={styles.walletValueContainer}>
-                  <span className={styles.walletValue}>{(user != null) ? user.wallet_balance : ""}</span>
+                  <span className={styles.walletValue}>{(user != null && user.wallet_balance != null) ? user.wallet_balance : "0"}</span>
                   <span className={styles.walletValueUnit}>csk</span>
                 </div>
               </div>
               <div className={styles.accountNumberContainer}>
-                <span className={styles.accountNumberHeader}>Account Number</span>
-                <span className={styles.accountNumberValue}>{ ( user != null) ? user.uuid : 0}</span>
+                <span className={styles.accountNumberHeader}>Public Key</span>
+                <div className={styles.accountPublicKeyWithCopy}>
+                  <span className={styles.accountNumberValue}>{ ( user != null) ? user.public_key : 0}</span>
+                  <FiCopy onClick={copyMyPublicKey} className={styles.myKeyCopyBtn} size={25} />
+                </div>
               </div>
             </div>
           </div>
@@ -106,13 +143,29 @@ const Home = () => {
           <div className={styles.mempoolOuterContainer}>
             <div className={styles.mempoolHeaderContainer}>
               <span className={styles.mempoolHeader}>Mempool</span>
-              <button className={styles.mineBtn}>MINE</button>
+              <button className={styles.mineBtn} onClick={mineBlock}>MINE</button>
             </div>
             
             <div className={styles.mempoolInnerContainer}>
               {
                 memPool.map((transaction) => {
-                  return <MempoolTransactionCard />
+                  return <MempoolTransactionCard transaction={transaction} />
+                })
+              }
+            </div>
+          </div>
+          
+        </div>
+
+        <div className={styles.blockchainBoxContainer}>
+          <div className={styles.blockchainOuterContainer}>
+            <div className={styles.blockchainHeaderContainer}>
+              <span className={styles.blockchainHeader}>Blockchain</span>
+            </div>
+            <div className={styles.blockchainInnerContainer}>
+              {
+                blockchain.map((block) => {
+                  return <BlockChainCard block={block} />
                 })
               }
             </div>
@@ -148,15 +201,20 @@ const UserAvatar = ({user, index, toggleInfoCardVisibility, setUserToDisplayInfo
 
 const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVisible}) => {
 
+  const copyPublicKey = () => {
+    navigator.clipboard.writeText(userToDisplayInfoCard.public_key);
+  }
 
   return (
     <>{(isInfoCardVisible) && 
       <div className={styles.userInfoCardBackground}>
         <div className={styles.userInfoContainer}>
-          <div className={styles.infoTitle}>Account No: </div>
-          <span className={styles.infoValue}>{userToDisplayInfoCard.uuid}</span>
-          <span className={styles.infoTitle}>Name: </span>
-          <span className={styles.infoValue}>{userToDisplayInfoCard.username}</span>
+          <span className={styles.infoTitle}>PORT: </span>
+          <span className={styles.infoValue}>{userToDisplayInfoCard.PORT}</span>
+          <span></span>
+          <div className={styles.infoTitle}>Public Key: </div>
+          <span className={styles.infoValue}>{userToDisplayInfoCard.public_key} </span>
+          <FiCopy onClick={copyPublicKey} className={styles.infoKeyCopyBtn} size={22} />
           <button onClick={() => {setIsInfoCardVisible(false)}}>close</button>
         </div>
       </div>
@@ -164,18 +222,41 @@ const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVi
   );
 }
 
-const MempoolTransactionCard = () => {
+const MempoolTransactionCard = ({transaction}) => {
+
   return (
     <div className={styles.mempoolTransactionCardContainer}>
       <div className={styles.transactionCard}>
         <span className={styles.transactionCardHeader}>Transaction Hash</span>
-        <span className={styles.transactionCardValue}>a35wva1we35va3f15weaf4we33</span>
+        <span className={styles.transactionCardValue}>{transaction.transaction_hash}</span>
         <span className={styles.transactionCardHeader}>Sender</span>
-        <span className={styles.transactionCardValue}>a4v6e8w4va664ag3awf5we1f3wa</span>
+        <span className={styles.transactionCardValue}>{transaction.sender_public_key}</span>
         <span className={styles.transactionCardHeader}>Reciever</span>
-        <span className={styles.transactionCardValue}>ser4b364a6w4a6g4a6w8g4a6r8g</span>
+        <span className={styles.transactionCardValue}>{transaction.receiver_public_key}</span>
+        <span className={styles.transactionCardHeader}>Amount</span>
+        <span className={styles.transactionCardValue}>{transaction.amount} csk</span>
         <span className={styles.transactionCardHeader}>Timestamp</span>
-        <span className={styles.transactionCardValue}>8:03 PM, 31/03/2021</span>
+        <span className={styles.transactionCardValue}>{dateformat(new Date(transaction.timestamp), "hh:MM:ss TT, dd/mm/yy")}</span>
+      </div>
+    </div>
+  );
+}
+
+const BlockChainCard = ({block}) => {
+
+  return (
+    <div className={styles.mempoolTransactionCardContainer}>
+      <div className={styles.transactionCard}>
+        <span className={styles.transactionCardHeader}>Block Number</span>
+        <span className={styles.transactionCardValue}>{block.block_number}</span>
+        <span className={styles.transactionCardHeader}>Nonce</span>
+        <span className={styles.transactionCardValue}>{block.nonce}</span>
+        {/* <span className={styles.transactionCardHeader}>Reciever</span>
+        <span className={styles.transactionCardValue}>{transaction.receiver_public_key}</span>
+        <span className={styles.transactionCardHeader}>Amount</span>
+        <span className={styles.transactionCardValue}>{transaction.amount} csk</span> */}
+        <span className={styles.transactionCardHeader}>Timestamp</span>
+        <span className={styles.transactionCardValue}>{dateformat(new Date(block.timestamp), "hh:MM:ss TT, dd/mm/yy")}</span>
       </div>
     </div>
   );

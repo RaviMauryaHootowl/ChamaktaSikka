@@ -256,7 +256,7 @@ def add_transaction():
     # }
     res = {
         "message": "transaction added to our mempool"
-        }
+    }
     return jsonify(res), 201
     # return render_template("index.html", chain = blockchain.chain)
 

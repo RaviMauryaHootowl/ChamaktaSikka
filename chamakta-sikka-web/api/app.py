@@ -2,6 +2,7 @@ import time
 import json
 import requests
 from flask import Flask, request
+from flask_cors import CORS
 from uuid import uuid4
 from flask_socketio import SocketIO, send, emit
 import sys
@@ -15,7 +16,9 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = 'csk'
 
+
 socketIO = SocketIO(app, cors_allowed_origins="*")
+CORS(app)
 
 # List of all users online
 # users_online = []
@@ -37,8 +40,10 @@ class BlockChain:
         this_transaction = {
             'sender_public_key' : sender_public_key,
             'receiver_public_key' : receiver_public_key,
-            'amount' : amount
+            'amount' : amount,
+            'timestamp': time.time()
         }
+        this_transaction['transaction_hash'] = self.hash_dict(this_transaction)
         signature = private_key.sign(
             json.dumps(this_transaction).encode('utf-8'),
             padding.PSS(
@@ -51,9 +56,7 @@ class BlockChain:
         this_transaction['signature'] = signature.hex()
         self.transactions.append(this_transaction)
         self.broadcast_transaction(this_transaction)
-        print("\n\n\nTransactions List: ")
-        print(self.transactions)
-        print("\n\n")
+        socketIO.emit('transactions', self.transactions, broadcast=True)
     
     def get_previous_block(self):
         return self.chain[-1]
@@ -82,39 +85,36 @@ class BlockChain:
         }
         nonce = self.calculate_nonce(genesis_block)
         self.chain.append(genesis_block)
+        #propagate this
+        
 
     def broadcast_transaction(self, transaction_to_broadcast):
         # send this transaction to all nodes
         for user in connected_users: 
             if str(user['PORT']) != PORT:
-                requests.post('http://localhost:{0}/api/receive_transaction'.format(user['PORT']), json={"new_transaction": transaction_to_broadcast})
+                requests.post('http://localhost:{}/api/receive_transaction'.format(user['PORT']), json={"new_transaction": transaction_to_broadcast})
 
 blockchain = BlockChain()
-
-@app.route('/time')
-def get_current_time():
-    return {'time': time.time()}
 
 @app.route('/api/update_connected_users', methods=['POST'])
 def update_connected_users():
     global connected_users
     all_users = request.get_json(force=True)
-    print("----------------")
-    # print(all_users)
     connected_users = all_users['all_users']
-    print(connected_users)
     socketIO.emit('connected_users', connected_users, broadcast=True)
-    print("----------------")
+    ping_all_users_for_blockchain_update()
     return {'success' : 'yes'}
+
+def ping_all_users_for_blockchain_update():
+    for user in connected_users: 
+        if str(user['PORT']) != PORT:
+            requests.post('http://localhost:{}/api/receive_blockchain_update_ping'.format(user['PORT']))
 
 @app.route('/api/provide_keys', methods=['POST'])
 def provide_keys():
     global key_pair, public_key, private_key
     key_pair_data = request.get_json(force=True)
-    print("-----------------------")
-    # print(all_users)
     key_pair = key_pair_data['public_private_keys']
-    print(key_pair)
     private_key_pem = bytes.fromhex(key_pair['private_key'])
     public_key_pem =  bytes.fromhex(key_pair['public_key'])
 
@@ -154,13 +154,9 @@ def coin_base_transaction():
 @app.route('/api/receive_transaction', methods=['POST'])
 def receive_transaction():
     transaction_data = request.get_json(force=True)
-    # print(coin_base_data)
-    # print(key_pair['public_key'])
     new_transaction = transaction_data['new_transaction']
     blockchain.transactions.append(new_transaction)
-    print("\n\nRecieved Transactions:")
-    print(blockchain.transactions)
-    print("\n\n")
+    socketIO.emit('transactions', blockchain.transactions, broadcast=True)
     #broadcast this transaction to all nodes
     return {'success': 'yes'}
 
@@ -172,17 +168,13 @@ def perform_transaction():
         return {'success': 'no', 'error': 'Not valid body'}
     receiver_public_key = transaction_details['receiver_public_key']
     transaction_amount = transaction_details['amount']
-    print("\n\nsender public key:")
-    print(key_pair['public_key'])
-    print("\n\n")
     blockchain.add_transaction(key_pair['private_key'], key_pair['public_key'], receiver_public_key, transaction_amount)
-    #broadcast this transaction to all nodes
     return {'success': 'yes'}
 
 @app.route('/api/mine_block', methods=['POST'])
 def mine_block():
     transactions_list = blockchain.transactions
-    # blockchain.transactions = []
+    blockchain.transactions = []
     previous_block_hash = blockchain.hash_dict(blockchain.get_previous_block())
     timestamp = time.time()
     block_number = len(blockchain.chain)
@@ -193,16 +185,35 @@ def mine_block():
         'previous_block_hash': previous_block_hash
     }
     nonce = blockchain.calculate_nonce(this_block)
-    print(nonce)
-    this_block['nonce'] = nonce
     blockchain.chain.append(this_block)
-
+    ping_all_users_for_blockchain_update()
+    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
+    socketIO.emit('transactions', blockchain.transactions, broadcast=True)
     print("\n\nBlocks:")
     print(json.dumps(blockchain.chain, sort_keys=False, indent=4))
     print("\n\n")
 
     return {'success': 'yes'}
 
+@app.route('/api/receive_blockchain_update_ping', methods=['POST'])
+def receive_blockchain_update_ping():
+    for user in connected_users: 
+        if str(user['PORT']) != PORT:
+            res = requests.get('http://localhost:{}/api/get_blockchain'.format(user['PORT'])).json()
+            users_blockchain = res['chain']
+            if len(blockchain.chain) <= len(users_blockchain):
+                blockchain.chain = users_blockchain
+    blockchain.transactions = []
+    print("\n\nAfter updating chain:")
+    print(blockchain.chain)
+    print("\n\n")
+    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
+    socketIO.emit('transactions', blockchain.transactions, broadcast=True)
+    return {'success': 'yes'}
+
+@app.route('/api/get_blockchain', methods=['GET'])
+def get_blockchain():
+    return {'chain': blockchain.chain}
 
 @socketIO.on('connect')
 def connected():
@@ -210,31 +221,44 @@ def connected():
 
 @socketIO.on('disconnect')
 def disconnected():
-    # isRemoved = removeUser(request.sid)
-    # if isRemoved:
-    #     emit('userRefresh', users_online, broadcast=True)
     print('Disconnected')
 
-@socketIO.on("message")
-def sendSomethign(msg):
-    print(msg)
-    send(msg, broadcast=True)
+@socketIO.on("refresh_connected_users")
+def refresh_connected_users():
+    socketIO.emit('connected_users', connected_users, broadcast=True)
+    return None
+
+@socketIO.on("refresh_transactions")
+def refresh_transactions():
+    socketIO.emit('transactions', blockchain.transactions, broadcast=True)
+    return None
+
+@socketIO.on("refresh_blockchain")
+def refresh_blockchain():
+    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
     return None
 
 
-@socketIO.on("addNewUser")
-def addNewUser(data):
-    print(data['username'])
-    user_to_add = {}
-    user_to_add['username'] = data['username']
-    user_to_add['sid'] = request.sid
-    user_to_add['uuid'] = str(uuid4()).replace("-","")
-    user_to_add['wallet_balance'] = int(data['initamount'])
-    users_online.append(user_to_add)
-    print(users_online)
-    emit('userInfo', user_to_add, room=request.sid)
-    emit("userRefresh", users_online, broadcast=True)
-    return None
+# @socketIO.on("message")
+# def sendSomethign(msg):
+#     print(msg)
+#     send(msg, broadcast=True)
+#     return None
+
+
+# @socketIO.on("addNewUser")
+# def addNewUser(data):
+#     print(data['username'])
+#     user_to_add = {}
+#     user_to_add['username'] = data['username']
+#     user_to_add['sid'] = request.sid
+#     user_to_add['uuid'] = str(uuid4()).replace("-","")
+#     user_to_add['wallet_balance'] = int(data['initamount'])
+#     users_online.append(user_to_add)
+#     print(users_online)
+#     emit('userInfo', user_to_add, room=request.sid)
+#     emit("userRefresh", users_online, broadcast=True)
+#     return None
 
 
 if __name__ == '__main__':

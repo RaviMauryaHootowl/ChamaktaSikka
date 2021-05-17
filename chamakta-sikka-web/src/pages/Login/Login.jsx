@@ -45,7 +45,6 @@ const Login = () => {
           <button className={styles.enterBtn} onClick={loginUser}>JOIN</button>
         </div>
       </div>
-      
     </div>
   );
 }
