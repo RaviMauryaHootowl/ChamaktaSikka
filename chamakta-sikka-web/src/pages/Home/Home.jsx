@@ -3,9 +3,9 @@ import styles from './Home.module.css';
 import axios from 'axios';
 import {useLocation} from 'react-router-dom';
 import io from 'socket.io-client';
-import dateformat from 'dateformat';
 import { FiCopy } from 'react-icons/fi'
-console.log(window.location.href);
+import Loader from '../../components/Loader/Loader';
+import { format, parseISO } from "date-fns";
 const port = parseInt((window.location.href).split(':')[2].substr(0,4))
 const baseAddress = `http://localhost:${port+2000}`
 const socket = io.connect(`${baseAddress}/`);
@@ -23,6 +23,9 @@ const Home = () => {
 
   const [memPool, setMemPool] = useState([]);
   const [blockchain, setBlockchain] = useState([]);
+  const [isPayingLoading, setIsPayingLoading] = useState(false);
+  const [isMiningLoading, setIsMiningLoading] = useState(false);
+
 
   const toggleInfoCardVisibility = () => {
     setIsInfoCardVisible(!isInfoCardVisible);
@@ -63,10 +66,14 @@ const Home = () => {
 
 
   const payToSomeone = () => {
+    setIsPayingLoading(true);
     axios.post(`${baseAddress}/api/perform_transaction`, {
       "receiver_public_key": payToId,
       "amount": payAmount
     }).then((res) => {
+      setIsPayingLoading(false);
+      setPayAmount(0);
+      setPayToId("");
       console.log(res.data);
     })
     .catch((e) => {
@@ -75,12 +82,16 @@ const Home = () => {
   }
 
   const mineBlock = () => {
+    setIsMiningLoading(true);
     axios.post(`${baseAddress}/api/mine_block`)
     .then((res) => {
-      console.log(res.data);
+      console.log(res.data)
+      setIsMiningLoading(false);
     })
     .catch((e) => {
+      console.log(e)
       alert("Block not mined");
+      setIsMiningLoading(false);
     })
   }
 
@@ -114,7 +125,9 @@ const Home = () => {
                 <input className={styles.payAmountInput} value={payAmount} onChange={(e) => {setPayAmount(e.target.value)}} type="number"/>
                 <span className={styles.inputLabel}>Incentive</span>
                 <input className={styles.payAmountInput} value={payIncentive} onChange={(e) => {setPayIncentive(e.target.value)}} type="number"/>
-                <button className={styles.payBtn} onClick={payToSomeone}>PAY</button>
+                <button className={styles.payBtn} onClick={payToSomeone}>
+                  {(isPayingLoading) ? <Loader size={20} border={3} color={"#ffffff"}/> : "PAY"}
+                </button>
               </div>
             </div>
           </div>
@@ -143,7 +156,9 @@ const Home = () => {
           <div className={styles.mempoolOuterContainer}>
             <div className={styles.mempoolHeaderContainer}>
               <span className={styles.mempoolHeader}>Mempool</span>
-              <button className={styles.mineBtn} onClick={mineBlock}>MINE</button>
+              <button className={styles.mineBtn} onClick={mineBlock}>
+                {(isMiningLoading) ? <Loader size={20} border={3} color={"#ffffff"}/> : "MINE"}
+              </button>
             </div>
             
             <div className={styles.mempoolInnerContainer}>
@@ -236,7 +251,7 @@ const MempoolTransactionCard = ({transaction}) => {
         <span className={styles.transactionCardHeader}>Amount</span>
         <span className={styles.transactionCardValue}>{transaction.amount} csk</span>
         <span className={styles.transactionCardHeader}>Timestamp</span>
-        <span className={styles.transactionCardValue}>{dateformat(new Date(transaction.timestamp), "hh:MM:ss TT, dd/mm/yy")}</span>
+        <span className={styles.transactionCardValue}>{format(parseISO(transaction.timestamp), "KK:mm:ss b dd/MM/yyyy")}</span>
       </div>
     </div>
   );
@@ -251,12 +266,16 @@ const BlockChainCard = ({block}) => {
         <span className={styles.transactionCardValue}>{block.block_number}</span>
         <span className={styles.transactionCardHeader}>Nonce</span>
         <span className={styles.transactionCardValue}>{block.nonce}</span>
-        {/* <span className={styles.transactionCardHeader}>Reciever</span>
-        <span className={styles.transactionCardValue}>{transaction.receiver_public_key}</span>
-        <span className={styles.transactionCardHeader}>Amount</span>
-        <span className={styles.transactionCardValue}>{transaction.amount} csk</span> */}
+        <span className={styles.transactionCardHeader}>No. of Transactions</span>
+        <span className={styles.transactionCardValue}>{block.transactions_list.length}</span>
+        <span className={styles.transactionCardHeader}>Miner</span>
+        <span className={styles.transactionCardValue}>{block.miner_public_key}</span>
+        <span className={styles.transactionCardHeader}>Previous Block Hash</span>
+        <span className={styles.transactionCardValue}>{block.previous_block_hash}</span>
+        <span className={styles.transactionCardHeader}>Block Hash</span>
+        <span className={styles.transactionCardValue}>{block.block_hash}</span>
         <span className={styles.transactionCardHeader}>Timestamp</span>
-        <span className={styles.transactionCardValue}>{dateformat(new Date(block.timestamp), "hh:MM:ss TT, dd/mm/yy")}</span>
+        <span className={styles.transactionCardValue}>{format(parseISO(block.timestamp), "KK:mm:ss b dd/MM/yyyy")}</span>
       </div>
     </div>
   );

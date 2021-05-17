@@ -202,9 +202,12 @@
   background-color: white;
   font-size: 18px;
   border-radius: 8px;
+  min-width: 20px;
 }
 
 .payBtn{
+  display: flex;
+  justify-content: center;
   padding: 12px 12px;
   outline: none;
   border: none;
@@ -303,6 +306,8 @@
 }
 
 .mineBtn{
+  display: flex;
+  justify-content: center;
   width: 100px;
   padding: 12px 12px;
   outline: none;

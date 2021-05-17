@@ -71,6 +71,8 @@
 }
 
 .enterBtn{
+  display: flex;
+  justify-content: center;
   padding: 12px 12px;
   outline: none;
   border: none;

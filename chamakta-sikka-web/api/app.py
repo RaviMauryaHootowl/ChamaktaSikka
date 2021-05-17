@@ -1,4 +1,5 @@
-import time
+import datetime
+import copy
 import json
 import requests
 from flask import Flask, request
@@ -22,6 +23,7 @@ CORS(app)
 
 # List of all users online
 # users_online = []
+starting_hash_value = '0000000000000000000000000000000000000000000000000000000000000000'
 PORT = sys.argv[1]
 connected_users = []
 key_pair = {}
@@ -33,7 +35,6 @@ class BlockChain:
         self.chain = []
         self.transactions = []
         self.transaction_limit = 10
-        self.mine_genesis_block()
 
     def add_transaction(self, sender_private_key, sender_public_key, receiver_public_key, amount):
         #sign this data
@@ -41,9 +42,9 @@ class BlockChain:
             'sender_public_key' : sender_public_key,
             'receiver_public_key' : receiver_public_key,
             'amount' : amount,
-            'timestamp': time.time()
+            'timestamp': datetime.datetime.now().isoformat()
         }
-        this_transaction['transaction_hash'] = self.hash_dict(this_transaction)
+        this_transaction['transaction_hash'] = self.hash_dict(this_transaction, True)
         signature = private_key.sign(
             json.dumps(this_transaction).encode('utf-8'),
             padding.PSS(
@@ -61,27 +62,37 @@ class BlockChain:
     def get_previous_block(self):
         return self.chain[-1]
 
-    def hash_dict(self, dict_to_hash):
+    def hash_dict(self, dict_to_hash, debug):
+        if debug:
+            print("\n\nDictionary: ")
+            print(dict_to_hash)
+            print("\n\n")
         digest = hashes.Hash(hashes.SHA256())
-        digest.update(json.dumps(dict_to_hash).encode('utf-8'))
+        digest.update(json.dumps(dict_to_hash, sort_keys=True).encode('utf-8'))
         hash_value = digest.finalize()
+        if debug:
+            print("Hash:")
+            print(hash_value.hex())
         return hash_value.hex()
 
     def calculate_nonce(self, this_block):
         print('Calculating nonce...')
+        
         while True:
             for i in range(1, 100000000):
                 this_block['nonce'] = i
-                this_block['timestamp'] = time.time()
-                if self.hash_dict(this_block)[0:3] == '000':
+                this_block['timestamp'] = datetime.datetime.now().isoformat()
+                if self.hash_dict(this_block, False)[0:3] == '000':
+                    print(this_block)
                     print(f"\n\nNonce found: {i}")
-                    print(f"Hash: {self.hash_dict(this_block)}\n\n")
+                    print(f"Hash: {self.hash_dict(this_block, False)}\n\n")
                     return i    
         print("Not found")
 
     def mine_genesis_block(self):
         genesis_block = {
-            'block_number' : 0
+            'block_number' : 0,
+            'miner_public_key': key_pair['public_key']
         }
         nonce = self.calculate_nonce(genesis_block)
         self.chain.append(genesis_block)
@@ -102,7 +113,6 @@ def update_connected_users():
     all_users = request.get_json(force=True)
     connected_users = all_users['all_users']
     socketIO.emit('connected_users', connected_users, broadcast=True)
-    ping_all_users_for_blockchain_update()
     return {'success' : 'yes'}
 
 def ping_all_users_for_blockchain_update():
@@ -129,9 +139,7 @@ def provide_keys():
         public_key_pem,
         backend=default_backend()
     )
-
     socketIO.emit('provide_keys', key_pair, broadcast=True)
-
     return {'success' : 'yes'}
 
 
@@ -143,13 +151,14 @@ def provide_keys():
 @app.route('/api/coin_base_transaction', methods=['POST'])
 def coin_base_transaction():
     coin_base_data = request.get_json(force=True)
-    print(coin_base_data)
-    print(key_pair['public_key'])
     amount_coinbase = coin_base_data['amount']
-    blockchain.add_transaction('COINBASE_PRI_KEY', 'COINBASE_PUB_KEY', key_pair['public_key'], amount_coinbase)
+    is_done = perform_coin_base_transaction(amount_coinbase)
     #broadcast this transaction to all nodes
     return {'success': 'yes'}
 
+def perform_coin_base_transaction(amount_coinbase):
+    blockchain.add_transaction('COINBASE_PRI_KEY', 'COINBASE_PUB_KEY', key_pair['public_key'], amount_coinbase)
+    return True
 
 @app.route('/api/receive_transaction', methods=['POST'])
 def receive_transaction():
@@ -175,23 +184,29 @@ def perform_transaction():
 def mine_block():
     transactions_list = blockchain.transactions
     blockchain.transactions = []
-    previous_block_hash = blockchain.hash_dict(blockchain.get_previous_block())
-    timestamp = time.time()
+    previous_block_hash = 0
     block_number = len(blockchain.chain)
+    if block_number > 0:
+        previous_block_hash = blockchain.hash_dict(blockchain.get_previous_block(), False)
+    else:
+        previous_block_hash = starting_hash_value
+    timestamp = datetime.datetime.now().isoformat()
     this_block = {
         'block_number': block_number,
         'timestamp': timestamp,
+        'miner_public_key': key_pair['public_key'],
         'transactions_list': transactions_list,
         'previous_block_hash': previous_block_hash
     }
     nonce = blockchain.calculate_nonce(this_block)
     blockchain.chain.append(this_block)
     ping_all_users_for_blockchain_update()
-    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
+    socket_emit_chain()
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
-    print("\n\nBlocks:")
-    print(json.dumps(blockchain.chain, sort_keys=False, indent=4))
-    print("\n\n")
+
+    # print("\n\nBlocks:")
+    # print(json.dumps(chain_with_block_hash, sort_keys=False, indent=4))
+    # print("\n\n")
 
     return {'success': 'yes'}
 
@@ -207,7 +222,7 @@ def receive_blockchain_update_ping():
     print("\n\nAfter updating chain:")
     print(blockchain.chain)
     print("\n\n")
-    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
+    socket_emit_chain()
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
     return {'success': 'yes'}
 
@@ -235,9 +250,16 @@ def refresh_transactions():
 
 @socketIO.on("refresh_blockchain")
 def refresh_blockchain():
-    socketIO.emit('blockchain', blockchain.chain, broadcast=True)
+    socket_emit_chain()
     return None
 
+def socket_emit_chain():
+    chain_with_block_hash = []
+    for block in blockchain.chain:
+        current_block = copy.deepcopy(block)
+        current_block['block_hash'] = blockchain.hash_dict(current_block, True)
+        chain_with_block_hash.append(current_block)
+    socketIO.emit('blockchain', chain_with_block_hash, broadcast=True)
 
 # @socketIO.on("message")
 # def sendSomethign(msg):
