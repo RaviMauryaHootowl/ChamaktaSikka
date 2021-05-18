@@ -24,6 +24,8 @@ CORS(app)
 # List of all users online
 # users_online = []
 starting_hash_value = '0000000000000000000000000000000000000000000000000000000000000000'
+COINBASE_PUB_KEY = 'COINBASE_PUB_KEY'
+COINBASE_PRI_KEY = 'COINBASE_PRI_KEY'
 PORT = sys.argv[1]
 connected_users = []
 key_pair = {}
@@ -157,7 +159,7 @@ def coin_base_transaction():
     return {'success': 'yes'}
 
 def perform_coin_base_transaction(amount_coinbase):
-    blockchain.add_transaction('COINBASE_PRI_KEY', 'COINBASE_PUB_KEY', key_pair['public_key'], amount_coinbase)
+    blockchain.add_transaction(COINBASE_PRI_KEY, COINBASE_PUB_KEY, key_pair['public_key'], amount_coinbase)
     return True
 
 @app.route('/api/receive_transaction', methods=['POST'])
@@ -191,6 +193,20 @@ def mine_block():
     else:
         previous_block_hash = starting_hash_value
     timestamp = datetime.datetime.now().isoformat()
+    # Check for each transaction if the sender has the required amount
+    for transact in transactions_list:
+        isPos = False
+        if transact['sender_public_key'] == COINBASE_PUB_KEY:
+            isPos = True
+        else:
+            res = requests.post('http://localhost:{0}/api/check_and_reduce_wallet'.format(public_key_to_port(transact['sender_public_key'])), json=transact).json()
+            isPos = res['isPos']
+        
+        if isPos:
+            print("\n\nSending Money:\n\n")
+            requests.post('http://localhost:{0}/api/increase_wallet'.format(public_key_to_port(transact['receiver_public_key'])), json=transact)
+        else:
+            blockchain.transactions.append(transact)   #rejected transaction
     this_block = {
         'block_number': block_number,
         'timestamp': timestamp,
@@ -226,6 +242,30 @@ def receive_blockchain_update_ping():
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
     return {'success': 'yes'}
 
+@app.route('/api/check_and_reduce_wallet', methods=['POST'])
+def check_and_reduce_wallet():
+    print("\n\n\n------This account money will be reduced\n\n\n")
+    transact = request.get_json(force=True)
+    if key_pair['wallet'] >= transact['amount']:
+        key_pair['wallet'] -= transact['amount']
+        emit_wallet_info()
+        print("\n\nWallet Decreased:")
+        print(key_pair)
+        print("\n\n")
+        return {'isPos': True}    
+    return {'isPos': False}
+
+@app.route('/api/increase_wallet', methods=['POST'])
+def increase_wallet():
+    transact = request.get_json(force=True)
+    print(transact)
+    key_pair['wallet'] += transact['amount']
+    print("\n\nWallet Increased:")
+    print(key_pair)
+    print("\n\n")
+    emit_wallet_info()
+    return {'isPos': False}
+
 @app.route('/api/get_blockchain', methods=['GET'])
 def get_blockchain():
     return {'chain': blockchain.chain}
@@ -243,6 +283,11 @@ def refresh_connected_users():
     socketIO.emit('connected_users', connected_users, broadcast=True)
     return None
 
+@socketIO.on("refresh_keys")
+def refresh_keys():
+    socketIO.emit('provide_keys', key_pair, broadcast=True)
+    return None
+
 @socketIO.on("refresh_transactions")
 def refresh_transactions():
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
@@ -253,6 +298,9 @@ def refresh_blockchain():
     socket_emit_chain()
     return None
 
+def emit_wallet_info():
+    socketIO.emit('provide_keys', key_pair, broadcast=True)
+
 def socket_emit_chain():
     chain_with_block_hash = []
     for block in blockchain.chain:
@@ -261,27 +309,11 @@ def socket_emit_chain():
         chain_with_block_hash.append(current_block)
     socketIO.emit('blockchain', chain_with_block_hash, broadcast=True)
 
-# @socketIO.on("message")
-# def sendSomethign(msg):
-#     print(msg)
-#     send(msg, broadcast=True)
-#     return None
-
-
-# @socketIO.on("addNewUser")
-# def addNewUser(data):
-#     print(data['username'])
-#     user_to_add = {}
-#     user_to_add['username'] = data['username']
-#     user_to_add['sid'] = request.sid
-#     user_to_add['uuid'] = str(uuid4()).replace("-","")
-#     user_to_add['wallet_balance'] = int(data['initamount'])
-#     users_online.append(user_to_add)
-#     print(users_online)
-#     emit('userInfo', user_to_add, room=request.sid)
-#     emit("userRefresh", users_online, broadcast=True)
-#     return None
-
+def public_key_to_port(public_key_to_convert):
+    for user in connected_users:
+        if user['public_key'] == public_key_to_convert:
+            return user['PORT']
+    return None
 
 if __name__ == '__main__':
     socketIO.run(app, port = PORT)

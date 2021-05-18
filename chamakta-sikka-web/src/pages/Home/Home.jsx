@@ -37,14 +37,19 @@ const Home = () => {
 
   useEffect(() => {
       socket.emit("refresh_connected_users");
+      socket.emit("refresh_keys");
       socket.emit("refresh_transactions");
       socket.emit("refresh_blockchain");
 
       socket.on("connected_users", data => {
         console.log(data);
         setAllUsers(data);
-        setUser((data.filter((item) => item.PORT === port+2000))[0]);
       });
+
+      socket.on("provide_keys", data => {
+        console.log(data);
+        setUser(data);
+      })
 
       socket.on("transactions", data => {
         setMemPool(data);
@@ -69,7 +74,7 @@ const Home = () => {
     setIsPayingLoading(true);
     axios.post(`${baseAddress}/api/perform_transaction`, {
       "receiver_public_key": payToId,
-      "amount": payAmount
+      "amount": parseFloat(payAmount)
     }).then((res) => {
       setIsPayingLoading(false);
       setPayAmount(0);
@@ -138,7 +143,7 @@ const Home = () => {
               <div className={styles.walletContainer}>
                 <span className={styles.walletHeader}>PORT {(user != null) ? user.PORT : ""}'s Wallet</span>
                 <div className={styles.walletValueContainer}>
-                  <span className={styles.walletValue}>{(user != null && user.wallet_balance != null) ? user.wallet_balance : "0"}</span>
+                  <span className={styles.walletValue}>{(user != null) ? user.wallet : "0"}</span>
                   <span className={styles.walletValueUnit}>csk</span>
                 </div>
               </div>

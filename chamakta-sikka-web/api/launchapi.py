@@ -47,7 +47,8 @@ for i in [5000, 5001]:
   all_users_private_keys.append({
     'PORT': i,
     'private_key': private_key_pem.hex(),
-    'public_key': public_key_pem.hex()
+    'public_key': public_key_pem.hex(),
+    'wallet': 0
   })
 
 
