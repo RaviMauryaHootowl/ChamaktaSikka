@@ -4,7 +4,6 @@ import json
 import requests
 from flask import Flask, request
 from flask_cors import CORS
-from uuid import uuid4
 from flask_socketio import SocketIO, send, emit
 import sys
 from cryptography.hazmat.primitives import serialization as crypto_serialization
@@ -17,13 +16,10 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = 'csk'
 
-
 socketIO = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
 
-# List of all users online
-# users_online = []
-starting_hash_value = '0000000000000000000000000000000000000000000000000000000000000000'
+EMPTY_HASH = '0000000000000000000000000000000000000000000000000000000000000000'
 COINBASE_PUB_KEY = 'COINBASE_PUB_KEY'
 COINBASE_PRI_KEY = 'COINBASE_PRI_KEY'
 PORT = sys.argv[1]
@@ -39,7 +35,6 @@ class BlockChain:
         self.transaction_limit = 10
 
     def add_transaction(self, sender_private_key, sender_public_key, receiver_public_key, amount):
-        #sign this data
         this_transaction = {
             'sender_public_key' : sender_public_key,
             'receiver_public_key' : receiver_public_key,
@@ -145,11 +140,6 @@ def provide_keys():
     return {'success' : 'yes'}
 
 
-'''
-{
-    'amount' : 3000
-}
-'''
 @app.route('/api/coin_base_transaction', methods=['POST'])
 def coin_base_transaction():
     coin_base_data = request.get_json(force=True)
@@ -191,9 +181,10 @@ def mine_block():
     if block_number > 0:
         previous_block_hash = blockchain.hash_dict(blockchain.get_previous_block(), False)
     else:
-        previous_block_hash = starting_hash_value
+        previous_block_hash = EMPTY_HASH
     timestamp = datetime.datetime.now().isoformat()
     # Check for each transaction if the sender has the required amount
+    valid_transactions = []
     for transact in transactions_list:
         isPos = False
         if transact['sender_public_key'] == COINBASE_PUB_KEY:
@@ -205,36 +196,34 @@ def mine_block():
         if isPos:
             print("\n\nSending Money:\n\n")
             requests.post('http://localhost:{0}/api/increase_wallet'.format(public_key_to_port(transact['receiver_public_key'])), json=transact)
+            valid_transactions.append(transact)
         else:
             blockchain.transactions.append(transact)   #rejected transaction
-    this_block = {
-        'block_number': block_number,
-        'timestamp': timestamp,
-        'miner_public_key': key_pair['public_key'],
-        'transactions_list': transactions_list,
-        'previous_block_hash': previous_block_hash
-    }
-    nonce = blockchain.calculate_nonce(this_block)
-    blockchain.chain.append(this_block)
-    ping_all_users_for_blockchain_update()
+    if len(valid_transactions) > 0:
+        this_block = {
+            'block_number': block_number,
+            'timestamp': timestamp,
+            'miner_public_key': key_pair['public_key'],
+            'transactions_list': valid_transactions,
+            'previous_block_hash': previous_block_hash
+        }
+        nonce = blockchain.calculate_nonce(this_block)
+        blockchain.chain.append(this_block)
+        ping_all_users_for_blockchain_update()
+
     socket_emit_chain()
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
-
-    # print("\n\nBlocks:")
-    # print(json.dumps(chain_with_block_hash, sort_keys=False, indent=4))
-    # print("\n\n")
-
     return {'success': 'yes'}
 
 @app.route('/api/receive_blockchain_update_ping', methods=['POST'])
 def receive_blockchain_update_ping():
     for user in connected_users: 
         if str(user['PORT']) != PORT:
-            res = requests.get('http://localhost:{}/api/get_blockchain'.format(user['PORT'])).json()
+            res = requests.get('http://localhost:{}/api/get_blockchain_and_transactions'.format(user['PORT'])).json()
             users_blockchain = res['chain']
             if len(blockchain.chain) <= len(users_blockchain):
                 blockchain.chain = users_blockchain
-    blockchain.transactions = []
+                blockchain.transactions = res['transactions']
     print("\n\nAfter updating chain:")
     print(blockchain.chain)
     print("\n\n")
@@ -266,9 +255,9 @@ def increase_wallet():
     emit_wallet_info()
     return {'isPos': False}
 
-@app.route('/api/get_blockchain', methods=['GET'])
-def get_blockchain():
-    return {'chain': blockchain.chain}
+@app.route('/api/get_blockchain_and_transactions', methods=['GET'])
+def get_blockchain_and_transactions():
+    return {'chain': blockchain.chain, 'transactions': blockchain.transactions}
 
 @socketIO.on('connect')
 def connected():
