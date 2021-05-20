@@ -1,4 +1,4 @@
-import random, sys, os, rabinMiller, cryptomath
+import random, sys, os, rabinMiller, cryptomath, sha
 
 def main():
 	makeKeyFiles('RSA', 1024)
@@ -31,13 +31,13 @@ def makeKeyFiles(name, keySize):
 	print('The public key is a %s and a %s digit number.' % (len(str(publicKey[0])), len(str(publicKey[1])))) 
 	print('Writing public key to file %s_public_key.txt...' % (name))   
 	fo = open('%s_public_key.txt' % (name), 'w')
-	fo.write('%s,%s,%s' % (keySize, publicKey[0], publicKey[1]))
+	fo.write('%s, %s' % (keySize, sha.digst(str(publicKey[0])+str(publicKey[1]))))
 	fo.close()
 	print()
 	print('The private key is a %s and a %s digit number.' % (len(str(publicKey[0])), len(str(publicKey[1]))))
 	print('Writing private key to file %s_private_key.txt...' % (name))
 	fo = open('%s_private_key.txt' % (name), 'w')
-	fo.write('%s,%s,%s' % (keySize, privateKey[0], privateKey[1]))
+	fo.write('%s, %s' % (keySize, sha.digst(str(privateKey[0])+str(privateKey[1]))))
 	fo.close()
 
 if __name__ == '__main__':
