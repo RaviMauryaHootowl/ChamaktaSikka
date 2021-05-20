@@ -15,15 +15,25 @@
 Add Project About here
 
 ## Team members
-* Member - 1
-* Member - 2
-* Member - 3
-* Member - 4
+* Member - Ravi Maurya
+* Member - Shreyas Penkar
+* Member - Nikheel Indanoor
+* Member - Kush Kothari
 
 ## Mentors
-* Mentor - 1
-* Mentor - 2 
-* Mentor - 3 (Add if required)
+* Mentor - Aditya Patkar
+* Mentor - Archeel Parekh
+
+### Instructions to run the application
+
+Place .env file in root dir with the required URLs and API keys
+
+```bash
+cd folder name
+pip install -r requirements.txt
+extra yaha daldo
+```
+
 
 ## Description
 
@@ -39,7 +49,7 @@ Don't forget to replace the link here with **_your own Github repository_** link
 
 Along with this, add the link of the drive folder that contains the app APK/Screenshots/Screen Recordings. If you have hosted your project on the web, add that link as well.
 
-* GitHub repo link: [Link to repository](https://github.com/your-repo-link)
+* GitHub repo link: [https://github.com/Shreyas-Penkar/ChamaktaSikka](https://github.com/Shreyas-Penkar/ChamaktaSikka)
 * Drive link: [Drive link here](https://drive.google.com/)
 * Website link: [Website link here](www.google.com)
 
@@ -47,9 +57,9 @@ Along with this, add the link of the drive folder that contains the app APK/Scre
 
 Tools and technologies that you learnt and used in the project.
 
-1. Language-1
-2. Language-2
-3. Framework-1
+1. Language - Python
+2. Language - 
+3. Framework- React
 4. Framework-2 (Add or remove as required)
 
 ## Applications
