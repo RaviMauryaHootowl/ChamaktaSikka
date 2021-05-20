@@ -4,7 +4,13 @@ import axios from 'axios';
 import {useHistory} from 'react-router-dom';
 import Loader from '../../components/Loader/Loader';
 const port = parseInt((window.location.href).split(':')[2].substr(0,4));
-const baseAddress = `http://localhost:${port+2000}`;
+
+let baseAddress = ''
+if(process.env.REACT_APP_MODE === 'DEVELOPMENT'){
+  baseAddress = `http://localhost:${port+2000}`
+}
+console.log(baseAddress)
+
 
 
 const Login = () => {

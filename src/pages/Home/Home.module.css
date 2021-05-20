@@ -98,12 +98,26 @@
   overflow: hidden;
   background-color: white;
   color: black;
+  display: flex;
+  flex-direction: column;
   border-radius: 6px;
   box-shadow: rgba(0, 0, 0, 0.212) 1px 1px 10px;
   padding: 16px;
+}
+
+.userInfoContainerGrid{
+  width: 100%;
+  overflow: hidden;
+  color: black;
   display: grid;
   grid-template-columns: auto auto auto;
   row-gap: 8px;
+}
+
+.userInfoContainerCloseBtn{
+  align-self: flex-end;
+  cursor: pointer;
+  color: #3097F6;
 }
 
 .infoRow{

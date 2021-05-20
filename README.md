@@ -24,15 +24,56 @@ Add Project About here
 * Mentor - Aditya Patkar
 * Mentor - Archeel Parekh
 
-### Instructions to run the application
+## Instructions to run the application (PRODUCTION)
 
-Place .env file in root dir with the required URLs and API keys
-
-```bash
-cd folder name
-pip install -r requirements.txt
-extra yaha daldo
+1. Create a .env file in root directory of the project
 ```
+REACT_APP_MODE=PRODUCTION
+```
+2. Build the react frontend
+```bash
+npm run build
+```
+3. Create a virtual environment for python, activate the virtual environment.
+
+4. Install Python libraries
+```bash
+pip install -r requirements.txt
+```
+
+5. Inside the api/launchapi.txt, change the ports list to number of ports wanted
+```python
+ports = [5000, 5001]
+``` 
+
+6. Launch multiple terminals and run this command on seprate terminals
+```bash
+cd api
+python app.py 5000
+```
+```bash
+cd api
+python app.py 5001
+```
+etc...
+<br>
+
+7. Launch one extra terminal and run this command to connect the nodes together
+```bash
+cd api
+python launchapi.py
+```
+<br>
+
+8. Now in your browser open the ports in different tabs
+```
+http://localhost:5000/
+```
+```
+http://localhost:5001/
+```
+etc...
+<br>
 
 
 ## Description

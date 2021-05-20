@@ -4,14 +4,20 @@ import axios from 'axios';
 import {useLocation} from 'react-router-dom';
 import io from 'socket.io-client';
 import { FiCopy } from 'react-icons/fi'
+import { AiFillCloseCircle } from 'react-icons/ai'
 import Loader from '../../components/Loader/Loader';
 import { format, parseISO } from "date-fns";
 const port = parseInt((window.location.href).split(':')[2].substr(0,4))
-const baseAddress = `http://localhost:${port+2000}`
+
+let baseAddress = ''
+if(process.env.REACT_APP_MODE === 'DEVELOPMENT'){
+  baseAddress = `http://localhost:${port+2000}`
+}
+console.log(baseAddress)
+
 const socket = io.connect(`${baseAddress}/`);
+
 const Home = () => {
-  const location = useLocation();
-  
   const [user, setUser] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
 
@@ -25,7 +31,6 @@ const Home = () => {
   const [blockchain, setBlockchain] = useState([]);
   const [isPayingLoading, setIsPayingLoading] = useState(false);
   const [isMiningLoading, setIsMiningLoading] = useState(false);
-
 
   const toggleInfoCardVisibility = () => {
     setIsInfoCardVisible(!isInfoCardVisible);
@@ -42,12 +47,10 @@ const Home = () => {
       socket.emit("refresh_blockchain");
 
       socket.on("connected_users", data => {
-        console.log(data);
         setAllUsers(data);
       });
 
       socket.on("provide_keys", data => {
-        console.log(data);
         setUser(data);
       })
 
@@ -55,9 +58,8 @@ const Home = () => {
         setMemPool(data);
       });
 
-      socket.on("blockchain", data => {
-        console.log(data);
-        setBlockchain(data);
+      socket.on("blockchain", chaindata => {
+        setBlockchain(chaindata);
       })
 
       return () => {
@@ -65,24 +67,21 @@ const Home = () => {
       }
   }, []);
 
-  useEffect(() => {
-    console.log(user);
-  }, [user]);
-
-
   const payToSomeone = () => {
     setIsPayingLoading(true);
     axios.post(`${baseAddress}/api/perform_transaction`, {
       "receiver_public_key": payToId,
-      "amount": parseFloat(payAmount)
+      "amount": parseFloat(payAmount),
+      "incentive": parseFloat(payIncentive)
     }).then((res) => {
       setIsPayingLoading(false);
       setPayAmount(0);
       setPayToId("");
-      console.log(res.data);
+      setPayIncentive(0);
     })
     .catch((e) => {
-      alert("Payment not done")
+      setIsPayingLoading(false);
+      alert(e.response.data.message);
     })
   }
 
@@ -90,13 +89,11 @@ const Home = () => {
     setIsMiningLoading(true);
     axios.post(`${baseAddress}/api/mine_block`)
     .then((res) => {
-      console.log(res.data)
       setIsMiningLoading(false);
     })
     .catch((e) => {
-      console.log(e)
-      alert("Block not mined");
       setIsMiningLoading(false);
+      alert("Block not mined");
     })
   }
 
@@ -229,13 +226,16 @@ const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVi
     <>{(isInfoCardVisible) && 
       <div className={styles.userInfoCardBackground}>
         <div className={styles.userInfoContainer}>
-          <span className={styles.infoTitle}>PORT: </span>
-          <span className={styles.infoValue}>{userToDisplayInfoCard.PORT}</span>
-          <span></span>
-          <div className={styles.infoTitle}>Public Key: </div>
-          <span className={styles.infoValue}>{userToDisplayInfoCard.public_key} </span>
-          <FiCopy onClick={copyPublicKey} className={styles.infoKeyCopyBtn} size={22} />
-          <button onClick={() => {setIsInfoCardVisible(false)}}>close</button>
+          <AiFillCloseCircle className={styles.userInfoContainerCloseBtn} onClick={() => {setIsInfoCardVisible(false)}} size={22} />
+          
+          <div className={styles.userInfoContainerGrid}>
+            <span className={styles.infoTitle}>PORT: </span>
+            <span className={styles.infoValue}>{userToDisplayInfoCard.PORT}</span>
+            <span></span>
+            <div className={styles.infoTitle}>Public Key: </div>
+            <span className={styles.infoValue}>{userToDisplayInfoCard.public_key} </span>
+            <FiCopy onClick={copyPublicKey} className={styles.infoKeyCopyBtn} size={22} />
+          </div>
         </div>
       </div>
     }</>
@@ -255,6 +255,8 @@ const MempoolTransactionCard = ({transaction}) => {
         <span className={styles.transactionCardValue}>{transaction.receiver_public_key}</span>
         <span className={styles.transactionCardHeader}>Amount</span>
         <span className={styles.transactionCardValue}>{transaction.amount} csk</span>
+        <span className={styles.transactionCardHeader}>Incentive</span>
+        <span className={styles.transactionCardValue}>{transaction.incentive} csk</span>
         <span className={styles.transactionCardHeader}>Timestamp</span>
         <span className={styles.transactionCardValue}>{format(parseISO(transaction.timestamp), "KK:mm:ss b dd/MM/yyyy")}</span>
       </div>
@@ -263,6 +265,14 @@ const MempoolTransactionCard = ({transaction}) => {
 }
 
 const BlockChainCard = ({block}) => {
+
+  const calTotalAmount = (transactions_list) => {
+    let total = 0;
+    transactions_list.forEach(transact => {
+      total += transact.amount + transact.incentive;
+    });
+    return total;
+  }
 
   return (
     <div className={styles.mempoolTransactionCardContainer}>
@@ -273,6 +283,8 @@ const BlockChainCard = ({block}) => {
         <span className={styles.transactionCardValue}>{block.nonce}</span>
         <span className={styles.transactionCardHeader}>No. of Transactions</span>
         <span className={styles.transactionCardValue}>{block.transactions_list.length}</span>
+        <span className={styles.transactionCardHeader}>Total Amount</span>
+        <span className={styles.transactionCardValue}>{calTotalAmount(block.transactions_list)}</span>
         <span className={styles.transactionCardHeader}>Miner</span>
         <span className={styles.transactionCardValue}>{block.miner_public_key}</span>
         <span className={styles.transactionCardHeader}>Previous Block Hash</span>

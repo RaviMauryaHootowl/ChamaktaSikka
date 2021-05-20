@@ -2,7 +2,8 @@ import datetime
 import copy
 import json
 import requests
-from flask import Flask, request
+from dotenv import dotenv_values
+from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, send, emit
 import sys
@@ -12,10 +13,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import padding
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../build/static", template_folder="../build")
 
 app.config['SECRET_KEY'] = 'csk'
-
+config = dotenv_values("../.env")
+print(config['REACT_APP_MODE'])
 socketIO = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
 
@@ -34,11 +36,12 @@ class BlockChain:
         self.transactions = []
         self.transaction_limit = 10
 
-    def add_transaction(self, sender_private_key, sender_public_key, receiver_public_key, amount):
+    def add_transaction(self, sender_private_key, sender_public_key, receiver_public_key, amount, incentive):
         this_transaction = {
             'sender_public_key' : sender_public_key,
             'receiver_public_key' : receiver_public_key,
             'amount' : amount,
+            'incentive': incentive,
             'timestamp': datetime.datetime.now().isoformat()
         }
         this_transaction['transaction_hash'] = self.hash_dict(this_transaction, True)
@@ -104,6 +107,11 @@ class BlockChain:
 
 blockchain = BlockChain()
 
+if config['REACT_APP_MODE'] == 'PRODUCTION':
+    @app.route("/")
+    def server_page():
+        return render_template('index.html')
+
 @app.route('/api/update_connected_users', methods=['POST'])
 def update_connected_users():
     global connected_users
@@ -149,7 +157,7 @@ def coin_base_transaction():
     return {'success': 'yes'}
 
 def perform_coin_base_transaction(amount_coinbase):
-    blockchain.add_transaction(COINBASE_PRI_KEY, COINBASE_PUB_KEY, key_pair['public_key'], amount_coinbase)
+    blockchain.add_transaction(COINBASE_PRI_KEY, COINBASE_PUB_KEY, key_pair['public_key'], amount_coinbase, 0)
     return True
 
 @app.route('/api/receive_transaction', methods=['POST'])
@@ -164,13 +172,24 @@ def receive_transaction():
 @app.route('/api/perform_transaction', methods=['POST'])
 def perform_transaction():
     transaction_details = request.get_json(force=True)
-    transaction_parameters = ['receiver_public_key', 'amount']
+    transaction_parameters = ['receiver_public_key', 'amount', 'incentive']
     if not all (key in transaction_details for key in transaction_parameters):
         return {'success': 'no', 'error': 'Not valid body'}
     receiver_public_key = transaction_details['receiver_public_key']
+    if key_not_valid(receiver_public_key):
+        return {'success': 'no', 'message': "Receiver Key not valid"}, 400
     transaction_amount = transaction_details['amount']
-    blockchain.add_transaction(key_pair['private_key'], key_pair['public_key'], receiver_public_key, transaction_amount)
+    transaction_incentive = transaction_details['incentive']
+    blockchain.add_transaction(key_pair['private_key'], key_pair['public_key'], receiver_public_key, transaction_amount, transaction_incentive)
     return {'success': 'yes'}
+
+def key_not_valid(receiver_public_key):
+    for u in connected_users:
+
+        if u['public_key'] == receiver_public_key:
+            return False
+    return True
+
 
 @app.route('/api/mine_block', methods=['POST'])
 def mine_block():
@@ -186,6 +205,8 @@ def mine_block():
     # Check for each transaction if the sender has the required amount
     valid_transactions = []
     for transact in transactions_list:
+        if len(valid_transactions) >= 10:
+            break
         isPos = False
         if transact['sender_public_key'] == COINBASE_PUB_KEY:
             isPos = True
@@ -196,9 +217,11 @@ def mine_block():
         if isPos:
             print("\n\nSending Money:\n\n")
             requests.post('http://localhost:{0}/api/increase_wallet'.format(public_key_to_port(transact['receiver_public_key'])), json=transact)
+            key_pair['wallet'] += transact['incentive']
             valid_transactions.append(transact)
         else:
             blockchain.transactions.append(transact)   #rejected transaction
+    emit_wallet_info()
     if len(valid_transactions) > 0:
         this_block = {
             'block_number': block_number,
@@ -235,8 +258,8 @@ def receive_blockchain_update_ping():
 def check_and_reduce_wallet():
     print("\n\n\n------This account money will be reduced\n\n\n")
     transact = request.get_json(force=True)
-    if key_pair['wallet'] >= transact['amount']:
-        key_pair['wallet'] -= transact['amount']
+    if key_pair['wallet'] >= (transact['amount'] + transact['incentive']):
+        key_pair['wallet'] -= (transact['amount'] + transact['incentive'])
         emit_wallet_info()
         print("\n\nWallet Decreased:")
         print(key_pair)
