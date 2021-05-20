@@ -18,7 +18,7 @@ Add Project About here
 * Member - Ravi Maurya
 * Member - Shreyas Penkar
 * Member - Nikheel Indanoor
-* Member - Kush Kothari
+* Member - Arnav Ganatra
 
 ## Mentors
 * Mentor - Aditya Patkar
