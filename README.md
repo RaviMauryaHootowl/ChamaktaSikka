@@ -124,10 +124,11 @@ Here are things we learned during Skill Up 2.0
 
 1. Ravi Maurya - <br/>
    It had been an amazing journey working on this project. The main core of this project is based on Blockchains, so I got to learn Blockchains in deep. We tried to implement everything on our own as we wanted to learn the fundamentals of Blockchain, this means too many bugs and errors, which also means so much to learn from it.
-2. Member 2 name - Description
+2. Shreyas Penkar - <br/>
+  It was awesome working as a leader in this project. I learnt how Blockchains work from scratch giving me a clear understanding of the various moving pieces and concepts regarding Blockchain. I gained many useful skills related to management, leadership, team-work and also got to know a lot about my co-workers. It was fun working with them on this project. So, overall it was a huge success. 
 3. Nikheel Indanoor - <br/>
    Working in a team teaches you a lot not just about the project but other aspects of team work as well. We tried to implement the cyptocurrency from very basics, so I got to learn about BlockChain and different other concepts of cryptocurrency in detail. Solving different difficulties and bugs along the way helped me to improve on my problem solving skills.
-4. Member 2 name - Description
+4. Arnav Ganatra - Description
 
 ## 🔮 Future scope
 
