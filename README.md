@@ -113,10 +113,6 @@ Tools and technologies that you learnt and used in the project.
 3. APIs - Flask
 4. SocketIO
 
-## 🧠 Applications
-
-> How can your project do its part in solving a real-life problem? What are its possible applications? Decribe here.
-
 ## 👨‍🎓 What did we learn from this project
 
 Here are things we learned during Skill Up 2.0
