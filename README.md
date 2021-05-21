@@ -1,6 +1,5 @@
 <br />
 <p align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
     <img src="https://drive.google.com/uc?export=view&id=15r9iyueR-7fGt418Q_sBCOxwCLzx9sxk" alt="Logo" width="80" height="80">
   </a>
 
