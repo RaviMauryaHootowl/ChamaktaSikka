@@ -11,20 +11,20 @@
   </p>
 </p>
 
-## About Project
-Add Project About here
+## 🤔 About Project
+Chamakta Sikka is our attempt to create our own Cryptocurrency System from scratch using Blockchains.
 
-## Team members
+## 👨‍💻 Team members
 * Member - Ravi Maurya
 * Member - Shreyas Penkar
 * Member - Nikheel Indanoor
 * Member - Arnav Ganatra
 
-## Mentors
+## 🙏 Mentors
 * Mentor - Aditya Patkar
 * Mentor - Archeel Parekh
 
-## Instructions to run the application (PRODUCTION)
+## 🚀 Instructions to run the application (PRODUCTION)
 
 1. Create a .env file in root directory of the project
 ```
@@ -76,15 +76,10 @@ etc...
 <br>
 
 
-## Description
+## 📃 Description
+Chamakta Sikka is our attempt to create our own Cryptocurrency System from scratch using Blockchains. The main aim for our project was to learn how Blockchain and Cryptocurrency works, understand the core concepts and then try to create our own system.<br/><br/>
 
-Add your project description here. Your project description should cover how your project works. That way you can convey what your project is without the need for anyone to view the code. A more detailed readme in your project repository is encouraged, which can include build and use instructions etc.
-
-* Use bullet points for any feature descriptions you may want to add
-
-```bash
-    Add appropriate code snippets here (4 spaces indent)
-```
+The final product that we have made is a Web Application. Multiple Users running on different local ports would login to the system. Each user will receive a his public and private keys which are generated using RSA. The user can pay amount in csk (our cryptocurrency unit). Paying amount to another user goes into the Mempool. Then at any point of time another user called as the Miner could mine a block. This process takes the transactions from the Mempool and creates and mines a new block into the Blockchain. After this according to the transactions which have been mined in the block, the wallet of each user updates.
 
 Don't forget to replace the link here with **_your own Github repository_** link.
 
@@ -92,32 +87,38 @@ Along with this, add the link of the drive folder that contains the app APK/Scre
 
 * GitHub repo link: [https://github.com/Shreyas-Penkar/ChamaktaSikka](https://github.com/Shreyas-Penkar/ChamaktaSikka)
 * Drive link: [Drive link here](https://drive.google.com/)
-* Website link: [Website link here](www.google.com)
 
-## Technology stack
+## 🛠 Technology stack
 
 Tools and technologies that you learnt and used in the project.
 
-1. Language - Python
-2. Language - 
-3. Framework- React
-4. Framework-2 (Add or remove as required)
+1. Frontend - Javascript, ReactJS
+2. Backend - Python
+3. APIs - Flask
+4. SocketIO
 
-## Applications
+
+## 🧠 Applications
 >How can your project do its part in solving a real-life problem? What are its possible applications? Decribe here.
 
-## What did you learn from this project
+## 👨‍🎓 What did we learn from this project
+Here are things we learned during Skill Up 2.0
 
-Each team member and mentor can briefly describe what they learnt during Skill Up 2.0, how they applied it to their project and what challenges they faced.
-
-1. Member 1 name - Description
+1. Ravi Maurya - <br/>
+It had been an amazing journey working on this project. The main core of this project is based on Blockchains, so I got to learn Blockchains in deep. We tried to implement everything on our own as we wanted to learn the fundamentals of Blockchain, this means too many bugs and errors, which also means so much to learn from it.
 2. Member 2 name - Description
-## Future scope
->Mention ways in which the project can be improved and built upon in the future.
+3. Member 2 name - Description
+4. Member 2 name - Description
 
-## Screenshots
-Add a few screenshots here to give the viewer a quick idea of what your project looks like. After all, a picture speaks a thousand words.
+## 🔮 Future scope
+Here are few things that we want to add in future<br/>
+- [ ] Increasing Security
+- [ ] Mobile App
+- [ ] GPU Support for Mining
 
-You'll have to link the screenshots from your drive folder here.
+## 🎨 Screenshots
 
-![Screenshot alt text](https://edtimes.in/wp-content/uploads/2018/09/NikeMeme10-640x633.jpg "Here is a screenshot")
+![Screenshot alt text](https://drive.google.com/uc?export=view&id=1SzwPcVRC2KqfNYQcmmLANMXCOuMYM5L-)
+![Screenshot alt text](https://drive.google.com/uc?export=view&id=1I2E_upOicKHDDouSHRQzGKHw4CWSXRU-)
+![Screenshot alt text](https://drive.google.com/uc?export=view&id=1OMBBAl3nXhHpwFuXDS6xIsE1XbrMMGbh)
+![Screenshot alt text](https://drive.google.com/uc?export=view&id=1225zHGSl7CVypaINeRjsmHH5ZOzCyDNG)

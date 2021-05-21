@@ -17,7 +17,7 @@ app = Flask(__name__, static_folder="../build/static", template_folder="../build
 
 app.config['SECRET_KEY'] = 'csk'
 config = dotenv_values("../.env")
-print(config['REACT_APP_MODE'])
+print("\n\nRunning on mode {}\n\n".format(config['REACT_APP_MODE']))
 socketIO = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
 
@@ -30,15 +30,20 @@ key_pair = {}
 public_key = None
 private_key = None
 
+
+'''
+Blockchain Class
+'''
 class BlockChain:
     def __init__(self):
         self.chain = []
         self.transactions = []
         self.transaction_limit = 10
 
-    def add_transaction(self, sender_private_key, sender_public_key, receiver_public_key, amount, incentive):
+    def add_transaction(self, sender_private_key, sender_public_key, sender_hash_public_key, receiver_public_key, amount, incentive):
         this_transaction = {
             'sender_public_key' : sender_public_key,
+            'sender_hash_public_key': sender_hash_public_key,
             'receiver_public_key' : receiver_public_key,
             'amount' : amount,
             'incentive': incentive,
@@ -63,49 +68,35 @@ class BlockChain:
         return self.chain[-1]
 
     def hash_dict(self, dict_to_hash, debug):
-        if debug:
-            print("\n\nDictionary: ")
-            print(dict_to_hash)
-            print("\n\n")
         digest = hashes.Hash(hashes.SHA256())
         digest.update(json.dumps(dict_to_hash, sort_keys=True).encode('utf-8'))
         hash_value = digest.finalize()
-        if debug:
-            print("Hash:")
-            print(hash_value.hex())
         return hash_value.hex()
 
     def calculate_nonce(self, this_block):
-        print('Calculating nonce...')
-        
         while True:
             for i in range(1, 100000000):
                 this_block['nonce'] = i
                 this_block['timestamp'] = datetime.datetime.now().isoformat()
                 if self.hash_dict(this_block, False)[0:3] == '000':
-                    print(this_block)
-                    print(f"\n\nNonce found: {i}")
-                    print(f"Hash: {self.hash_dict(this_block, False)}\n\n")
                     return i    
         print("Not found")
 
-    def mine_genesis_block(self):
-        genesis_block = {
-            'block_number' : 0,
-            'miner_public_key': key_pair['public_key']
-        }
-        nonce = self.calculate_nonce(genesis_block)
-        self.chain.append(genesis_block)
-        #propagate this
-        
-
     def broadcast_transaction(self, transaction_to_broadcast):
-        # send this transaction to all nodes
         for user in connected_users: 
             if str(user['PORT']) != PORT:
                 requests.post('http://localhost:{}/api/receive_transaction'.format(user['PORT']), json={"new_transaction": transaction_to_broadcast})
 
+
+'''
+Creating Instance of the Blockchain
+'''
 blockchain = BlockChain()
+
+
+'''
+App routes
+'''
 
 if config['REACT_APP_MODE'] == 'PRODUCTION':
     @app.route("/")
@@ -157,7 +148,7 @@ def coin_base_transaction():
     return {'success': 'yes'}
 
 def perform_coin_base_transaction(amount_coinbase):
-    blockchain.add_transaction(COINBASE_PRI_KEY, COINBASE_PUB_KEY, key_pair['public_key'], amount_coinbase, 0)
+    blockchain.add_transaction(COINBASE_PRI_KEY, COINBASE_PUB_KEY, COINBASE_PUB_KEY, key_pair['hash_public_key'], amount_coinbase, 0)
     return True
 
 @app.route('/api/receive_transaction', methods=['POST'])
@@ -180,13 +171,12 @@ def perform_transaction():
         return {'success': 'no', 'message': "Receiver Key not valid"}, 400
     transaction_amount = transaction_details['amount']
     transaction_incentive = transaction_details['incentive']
-    blockchain.add_transaction(key_pair['private_key'], key_pair['public_key'], receiver_public_key, transaction_amount, transaction_incentive)
+    blockchain.add_transaction(key_pair['private_key'], key_pair['public_key'], key_pair['hash_public_key'], receiver_public_key, transaction_amount, transaction_incentive)
     return {'success': 'yes'}
 
 def key_not_valid(receiver_public_key):
     for u in connected_users:
-
-        if u['public_key'] == receiver_public_key:
+        if u['hash_public_key'] == receiver_public_key:
             return False
     return True
 
@@ -211,11 +201,10 @@ def mine_block():
         if transact['sender_public_key'] == COINBASE_PUB_KEY:
             isPos = True
         else:
-            res = requests.post('http://localhost:{0}/api/check_and_reduce_wallet'.format(public_key_to_port(transact['sender_public_key'])), json=transact).json()
+            res = requests.post('http://localhost:{0}/api/check_and_reduce_wallet'.format(public_key_to_port(transact['sender_hash_public_key'])), json=transact).json()
             isPos = res['isPos']
         
         if isPos:
-            print("\n\nSending Money:\n\n")
             requests.post('http://localhost:{0}/api/increase_wallet'.format(public_key_to_port(transact['receiver_public_key'])), json=transact)
             key_pair['wallet'] += transact['incentive']
             valid_transactions.append(transact)
@@ -226,7 +215,7 @@ def mine_block():
         this_block = {
             'block_number': block_number,
             'timestamp': timestamp,
-            'miner_public_key': key_pair['public_key'],
+            'miner_hash_public_key': key_pair['hash_public_key'],
             'transactions_list': valid_transactions,
             'previous_block_hash': previous_block_hash
         }
@@ -247,40 +236,36 @@ def receive_blockchain_update_ping():
             if len(blockchain.chain) <= len(users_blockchain):
                 blockchain.chain = users_blockchain
                 blockchain.transactions = res['transactions']
-    print("\n\nAfter updating chain:")
-    print(blockchain.chain)
-    print("\n\n")
     socket_emit_chain()
     socketIO.emit('transactions', blockchain.transactions, broadcast=True)
     return {'success': 'yes'}
 
 @app.route('/api/check_and_reduce_wallet', methods=['POST'])
 def check_and_reduce_wallet():
-    print("\n\n\n------This account money will be reduced\n\n\n")
     transact = request.get_json(force=True)
     if key_pair['wallet'] >= (transact['amount'] + transact['incentive']):
         key_pair['wallet'] -= (transact['amount'] + transact['incentive'])
         emit_wallet_info()
-        print("\n\nWallet Decreased:")
-        print(key_pair)
-        print("\n\n")
         return {'isPos': True}    
     return {'isPos': False}
 
 @app.route('/api/increase_wallet', methods=['POST'])
 def increase_wallet():
     transact = request.get_json(force=True)
-    print(transact)
     key_pair['wallet'] += transact['amount']
-    print("\n\nWallet Increased:")
-    print(key_pair)
-    print("\n\n")
     emit_wallet_info()
     return {'isPos': False}
 
 @app.route('/api/get_blockchain_and_transactions', methods=['GET'])
 def get_blockchain_and_transactions():
     return {'chain': blockchain.chain, 'transactions': blockchain.transactions}
+
+
+
+'''
+Socket listen ports & Utilities
+'''
+
 
 @socketIO.on('connect')
 def connected():
@@ -323,7 +308,7 @@ def socket_emit_chain():
 
 def public_key_to_port(public_key_to_convert):
     for user in connected_users:
-        if user['public_key'] == public_key_to_convert:
+        if user['hash_public_key'] == public_key_to_convert:
             return user['PORT']
     return None
 

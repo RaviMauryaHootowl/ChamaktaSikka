@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import styles from './Home.module.css';
 import axios from 'axios';
-import {useLocation} from 'react-router-dom';
 import io from 'socket.io-client';
 import { FiCopy } from 'react-icons/fi'
 import { AiFillCloseCircle } from 'react-icons/ai'
@@ -37,7 +36,7 @@ const Home = () => {
   }
 
   const copyMyPublicKey = () => {
-    navigator.clipboard.writeText(user.public_key);
+    navigator.clipboard.writeText(user.hash_public_key);
   }
 
   useEffect(() => {
@@ -67,7 +66,20 @@ const Home = () => {
       }
   }, []);
 
+  const validateFields = () => {
+    if(payToId.trim() == ""){
+      alert("Enter a valid address for the receiver."); 
+      return false;
+    }
+    if(parseFloat(payAmount) < 0 || parseFloat(payIncentive) < 0){
+      alert("Amounts should be positive");
+      return false;
+    }
+    return true;
+  }
+
   const payToSomeone = () => {
+    if(!validateFields()){return;}
     setIsPayingLoading(true);
     axios.post(`${baseAddress}/api/perform_transaction`, {
       "receiver_public_key": payToId,
@@ -147,7 +159,7 @@ const Home = () => {
               <div className={styles.accountNumberContainer}>
                 <span className={styles.accountNumberHeader}>Public Key</span>
                 <div className={styles.accountPublicKeyWithCopy}>
-                  <span className={styles.accountNumberValue}>{ ( user != null) ? user.public_key : 0}</span>
+                  <span className={styles.accountNumberValue}>{ ( user != null) ? user.hash_public_key : 0}</span>
                   <FiCopy onClick={copyMyPublicKey} className={styles.myKeyCopyBtn} size={25} />
                 </div>
               </div>
@@ -219,7 +231,7 @@ const UserAvatar = ({user, index, toggleInfoCardVisibility, setUserToDisplayInfo
 const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVisible}) => {
 
   const copyPublicKey = () => {
-    navigator.clipboard.writeText(userToDisplayInfoCard.public_key);
+    navigator.clipboard.writeText(userToDisplayInfoCard.hash_public_key);
   }
 
   return (
@@ -233,7 +245,7 @@ const UserInfoCard = ({userToDisplayInfoCard, isInfoCardVisible, setIsInfoCardVi
             <span className={styles.infoValue}>{userToDisplayInfoCard.PORT}</span>
             <span></span>
             <div className={styles.infoTitle}>Public Key: </div>
-            <span className={styles.infoValue}>{userToDisplayInfoCard.public_key} </span>
+            <span className={styles.infoValue}>{userToDisplayInfoCard.hash_public_key} </span>
             <FiCopy onClick={copyPublicKey} className={styles.infoKeyCopyBtn} size={22} />
           </div>
         </div>
@@ -250,7 +262,7 @@ const MempoolTransactionCard = ({transaction}) => {
         <span className={styles.transactionCardHeader}>Transaction Hash</span>
         <span className={styles.transactionCardValue}>{transaction.transaction_hash}</span>
         <span className={styles.transactionCardHeader}>Sender</span>
-        <span className={styles.transactionCardValue}>{transaction.sender_public_key}</span>
+        <span className={styles.transactionCardValue}>{transaction.sender_hash_public_key}</span>
         <span className={styles.transactionCardHeader}>Reciever</span>
         <span className={styles.transactionCardValue}>{transaction.receiver_public_key}</span>
         <span className={styles.transactionCardHeader}>Amount</span>
@@ -286,7 +298,7 @@ const BlockChainCard = ({block}) => {
         <span className={styles.transactionCardHeader}>Total Amount</span>
         <span className={styles.transactionCardValue}>{calTotalAmount(block.transactions_list)}</span>
         <span className={styles.transactionCardHeader}>Miner</span>
-        <span className={styles.transactionCardValue}>{block.miner_public_key}</span>
+        <span className={styles.transactionCardValue}>{block.miner_hash_public_key}</span>
         <span className={styles.transactionCardHeader}>Previous Block Hash</span>
         <span className={styles.transactionCardValue}>{block.previous_block_hash}</span>
         <span className={styles.transactionCardHeader}>Block Hash</span>
