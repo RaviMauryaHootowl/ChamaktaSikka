@@ -97,12 +97,8 @@ Chamakta Sikka is our attempt to create our own Cryptocurrency System from scrat
 
 The final product that we have made is a Web Application. Multiple Users running on different local ports would login to the system. Each user will receive a his public and private keys which are generated using RSA. The user can pay amount in csk (our cryptocurrency unit). Paying amount to another user goes into the Mempool. Then at any point of time another user called as the Miner could mine a block. This process takes the transactions from the Mempool and creates and mines a new block into the Blockchain. After this according to the transactions which have been mined in the block, the wallet of each user updates.
 
-Don't forget to replace the link here with **_your own Github repository_** link.
-
-Along with this, add the link of the drive folder that contains the app APK/Screenshots/Screen Recordings. If you have hosted your project on the web, add that link as well.
-
 - GitHub repo link: [https://github.com/Shreyas-Penkar/ChamaktaSikka](https://github.com/Shreyas-Penkar/ChamaktaSikka)
-- Drive link: [Drive link here](https://drive.google.com/)
+- Drive link: [https://drive.google.com/drive/folders/1BVFH3Wo46ZNrbqi4xoQLw5c254GyAWiQ?usp=sharing](https://drive.google.com/drive/folders/1BVFH3Wo46ZNrbqi4xoQLw5c254GyAWiQ?usp=sharing)
 
 ## 🛠 Technology stack
 
@@ -112,6 +108,7 @@ Tools and technologies that you learnt and used in the project.
 2. Backend - Python
 3. APIs - Flask
 4. SocketIO
+5. Blockchain
 
 ## 👨‍🎓 What did we learn from this project
 
@@ -132,6 +129,7 @@ Here are few things that we want to add in future<br/>
 - [ ] Increasing Security
 - [ ] Mobile App
 - [ ] GPU Support for Mining
+- [ ] Writing Tests
 
 ## 🎨 Screenshots
 
