@@ -121,7 +121,7 @@ Here are things we learned during Skill Up 2.0
 3. Nikheel Indanoor - <br/>
    Working in a team teaches you a lot not just about the project but other aspects of team work as well. We tried to implement the cyptocurrency from very basics, so I got to learn about BlockChain and different other concepts of cryptocurrency in detail. Solving different difficulties and bugs along the way helped me to improve on my problem solving skills.
 4. Arnav Ganatra - <br/>
-    I learnt a lot about blockchains and encryption. I learnt about Rivest-Shamir-Adleman (RSA) encryption. It is a public-key cryptosystem that is widely used for secure data transmission. A public-key system is where the encryption key is public and the decryption key is private. Came accross various protocols and applied them in real fashion. 
+    I learnt a lot about blockchains and encryption. I learnt about Rivest-Shamir-Adleman (RSA) encryption and the math behind it. It is a public-key cryptosystem that is widely used for secure data transmission. A public-key system is where the encryption key is public and the decryption key is private. Came accross various protocols and applied them in real fashion. 
 
 ## 🔮 Future scope
 
